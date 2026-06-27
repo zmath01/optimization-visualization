@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Adam Optimizer — Interactive 3D Visualization</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0a0a12;
+    color: #e0e0e8;
+    overflow: hidden;
+  }
+  #canvas-container {
+    position: absolute;
+    inset: 0;
+  }
+  #panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 340px;
+    background: rgba(15, 15, 25, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(100, 120, 200, 0.2);
+    border-radius: 12px;
+    padding: 18px;
+    z-index: 10;
+    font-size: 13px;
+    line-height: 1.5;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+  }
+  #panel h2 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    color: #7aa2ff;
+    border-bottom: 1px solid rgba(122, 162, 255, 0.3);
+    padding-bottom: 6px;
+  }
+  .formula {
+    font-family: 'Cambria Math', 'Times New Roman', serif;
+    font-style: italic;
+    background: rgba(60, 80, 140, 0.15);
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin: 6px 0;
+    font-size: 12px;
+    border-left: 3px solid #5a80d0;
+  }
+  .control-row {
+    margin: 10px 0;
+  }
+  .control-row label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    color: #a0b0d0;
+  }
+  .control-row input[type="range"] {
+    width: 100%;
+    accent-color: #5a80d0;
+  }
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  button {
+    flex: 1;
+    padding: 8px;
+    background: #3b5998;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s;
+  }
+  button:hover { background: #4a6bb0; }
+  button.secondary { background: #2a3a5a; }
+  button.secondary:hover { background: #3a4a70; }
+  .readout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    margin-top: 10px;
+    font-family: 'Consolas', monospace;
+    font-size: 11px;
+  }
+  .readout span:nth-child(odd) { color: #8090b0; }
+  .readout span:nth-child(even) { color: #e0e8ff; text-align: right; }
+  .legend {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(122, 162, 255, 0.2);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+    font-size: 12px;
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+  #info {
+    position: absolute;
+    bottom: 16px;
+    left: 20px;
+    font-size: 11px;
+    color: #607090;
+    z-index: 10;
+  }
+  @media (max-width: 720px) {
+    #panel { width: 280px; right: 10px; top: 10px; padding: 14px; }
+    #panel h2 { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+
+<div id="panel">
+  <h2>Adam Optimizer — 3D View</h2>
+
+  <div class="formula">
+    m<sub>t</sub> = β₁·m<sub>t-1</sub> + (1−β₁)·g<sub>t</sub>
+  </div>
+  <div class="formula">
+    v<sub>t</sub> = β₂·v<sub>t-1</sub> + (1−β₂)·g<sub>t</sub>²
+  </div>
+  <div class="formula">
+    θ<sub>t</sub> = θ<sub>t-1</sub> − α · m̂<sub>t</sub> / (√v̂<sub>t</sub> + ε)
+  </div>
+
+  <div class="control-row">
+    <label>α (learning rate) <span id="alpha-val">0.100</span></label>
+    <input type="range" id="alpha" min="0.001" max="0.5" step="0.001" value="0.1">
+  </div>
+  <div class="control-row">
+    <label>β₁ (momentum decay) <span id="beta1-val">0.900</span></label>
+    <input type="range" id="beta1" min="0.5" max="0.999" step="0.001" value="0.9">
+  </div>
+  <div class="control-row">
+    <label>β₂ (variance decay) <span id="beta2-val">0.999</span></label>
+    <input type="range" id="beta2" min="0.9" max="0.9999" step="0.0001" value="0.999">
+  </div>
+
+  <div class="btn-row">
+    <button id="btn-reset">Reset</button>
+    <button id="btn-pause" class="secondary">Pause</button>
+    <button id="btn-step" class="secondary">Step</button>
+  </div>
+
+  <div class="readout" id="readout">
+    <span>t</span><span id="r-t">0</span>
+    <span>θ₁</span><span id="r-t1">3.000</span>
+    <span>θ₂</span><span id="r-t2">3.000</span>
+    <span>m₁</span><span id="r-m1">0.000</span>
+    <span>m₂</span><span id="r-m2">0.000</span>
+    <span>v₁</span><span id="r-v1">0.000</span>
+    <span>v₂</span><span id="r-v2">0.000</span>
+    <span>loss</span><span id="r-loss">22.500</span>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#ff5555"></div>Raw gradient gₜ</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#5599ff"></div>1st moment mₜ (momentum)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#55ff99"></div>Adam effective step Δθ</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#bb88ff;opacity:0.5"></div>Adaptive metric (1/√v̂ₜ)</div>
+  </div>
+</div>
+
+<div id="info">Drag to rotate · Scroll to zoom · Right-drag to pan · Based on Kingma & Ba (2015) Adam</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.150.1/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============ Scene Setup ============
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a12);
+scene.fog = new THREE.Fog(0x0a0a12, 20, 60);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(8, 6, 10);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+container.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+
+// Lighting
+const ambient = new THREE.AmbientLight(0x404060, 0.6);
+scene.add(ambient);
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+dirLight.position.set(10, 15, 8);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(1024, 1024);
+scene.add(dirLight);
+const fillLight = new THREE.PointLight(0x5588ff, 0.5, 30);
+fillLight.position.set(-5, 5, -5);
+scene.add(fillLight);
+
+// ============ Complex Loss Surface ============
+// f(θ) = 0.5·(θ₁²+θ₂²) + 0.3·sin(3θ₁)·cos(3θ₂) + 0.2·(θ₁+θ₂)
+function loss(x, y) {
+  return 0.5 * (x * x + y * y) + 0.3 * Math.sin(3 * x) * Math.cos(3 * y) + 0.2 * (x + y);
+}
+function gradient(x, y) {
+  const dx = x - 0.9 * Math.sin(3 * x) * Math.cos(3 * y) + 0.2;
+  const dy = y + 0.9 * Math.cos(3 * x) * Math.sin(3 * y) + 0.2;
+  return [dx, dy];
+}
+
+const GRID_SIZE = 100;
+const BOUND = 3.5;
+const geometry = new THREE.PlaneGeometry(BOUND * 2, BOUND * 2, GRID_SIZE, GRID_SIZE);
+geometry.rotateX(-Math.PI / 2);
+
+// Pre‑compute height range for coloring
+let minH = Infinity, maxH = -Infinity;
+const tempHeights = [];
+const pos = geometry.attributes.position;
+for (let i = 0; i < pos.count; i++) {
+  const x = pos.getX(i);
+  const z = pos.getZ(i);
+  const h = loss(x, z);
+  tempHeights.push(h);
+  if (h < minH) minH = h;
+  if (h > maxH) maxH = h;
+}
+const rangeH = maxH - minH || 0.001;
+
+// Set heights and vertex colors
+const colors = new Float32Array(pos.count * 3);
+const colorLow = new THREE.Color(0x1a2a6a);
+const colorMid = new THREE.Color(0x4a7a9a);
+const colorHigh = new THREE.Color(0xff6a4a);
+
+for (let i = 0; i < pos.count; i++) {
+  const x = pos.getX(i);
+  const z = pos.getZ(i);
+  const h = tempHeights[i];
+  pos.setY(i, h);
+  
+  const t = (h - minH) / rangeH; // 0..1
+  let c;
+  if (t < 0.5) {
+    const u = t / 0.5;
+    c = colorLow.clone().lerp(colorMid, u);
+  } else {
+    const u = (t - 0.5) / 0.5;
+    c = colorMid.clone().lerp(colorHigh, u);
+  }
+  colors[i * 3] = c.r;
+  colors[i * 3 + 1] = c.g;
+  colors[i * 3 + 2] = c.b;
+}
+geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+geometry.computeVertexNormals();
+
+const material = new THREE.MeshStandardMaterial({
+  vertexColors: true,
+  side: THREE.DoubleSide,
+  metalness: 0.1,
+  roughness: 0.7,
+  transparent: true,
+  opacity: 0.92
+});
+const surface = new THREE.Mesh(geometry, material);
+surface.receiveShadow = true;
+scene.add(surface);
+
+// Wireframe overlay
+const wireGeo = new THREE.WireframeGeometry(geometry);
+const wireMat = new THREE.LineBasicMaterial({ color: 0x4466aa, transparent: true, opacity: 0.12 });
+const wireframe = new THREE.LineSegments(wireGeo, wireMat);
+scene.add(wireframe);
+
+// Grid helper
+const grid = new THREE.GridHelper(8, 16, 0x334466, 0x223344);
+grid.position.y = -0.5;
+scene.add(grid);
+
+// ============ Optimizer State ============
+let state = {
+  theta: [2.5, 2.5],
+  m: [0.0, 0.0],
+  v: [0.0, 0.0],
+  t: 0,
+  running: true
+};
+
+let params = {
+  alpha: 0.1,
+  beta1: 0.9,
+  beta2: 0.999,
+  eps: 1e-8
+};
+
+// Trail history
+const MAX_TRAIL = 200;
+let trailPositions = [];
+let trailGeometry = new THREE.BufferGeometry();
+let trailMaterial = new THREE.LineBasicMaterial({ color: 0xffff55, transparent: true, opacity: 0.8 });
+let trailLine = new THREE.Line(trailGeometry, trailMaterial);
+scene.add(trailLine);
+
+// ============ Visual Elements ============
+// Particle sphere
+const particleGeo = new THREE.SphereGeometry(0.12, 24, 24);
+const particleMat = new THREE.MeshStandardMaterial({ color: 0xffff66, emissive: 0xffaa00, emissiveIntensity: 0.5 });
+const particle = new THREE.Mesh(particleGeo, particleMat);
+particle.castShadow = true;
+scene.add(particle);
+
+// Arrow helpers
+function createArrow(color) {
+  const group = new THREE.Group();
+  const shaftGeo = new THREE.CylinderGeometry(0.03, 0.03, 1, 8);
+  shaftGeo.translate(0, 0.5, 0);
+  const shaftMat = new THREE.MeshBasicMaterial({ color });
+  const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+  group.add(shaft);
+  
+  const coneGeo = new THREE.ConeGeometry(0.08, 0.2, 8);
+  coneGeo.translate(0, 1.0, 0);
+  const coneMat = new THREE.MeshBasicMaterial({ color });
+  const cone = new THREE.Mesh(coneGeo, coneMat);
+  group.add(cone);
+  
+  return group;
+}
+
+const arrowGrad = createArrow(0xff5555);       // red: raw gradient
+const arrowMom = createArrow(0x5599ff);        // blue: momentum
+const arrowStep = createArrow(0x55ff99);       // green: effective step
+scene.add(arrowGrad, arrowMom, arrowStep);
+
+// Adaptive metric ellipsoid
+const ellipseGeo = new THREE.SphereGeometry(1, 24, 24);
+const ellipseMat = new THREE.MeshBasicMaterial({
+  color: 0xbb88ff,
+  transparent: true,
+  opacity: 0.15,
+  wireframe: false,
+  side: THREE.DoubleSide
+});
+const ellipsoid = new THREE.Mesh(ellipseGeo, ellipseMat);
+scene.add(ellipsoid);
+
+const ellipseWireGeo = new THREE.WireframeGeometry(ellipseGeo);
+const ellipseWireMat = new THREE.LineBasicMaterial({ color: 0xbb88ff, transparent: true, opacity: 0.4 });
+const ellipseWire = new THREE.LineSegments(ellipseWireGeo, ellipseWireMat);
+scene.add(ellipseWire);
+
+// ============ Adam Step ============
+function adamStep() {
+  state.t++;
+  const [gx, gy] = gradient(state.theta[0], state.theta[1]);
+  
+  // Update biased moments
+  state.m[0] = params.beta1 * state.m[0] + (1 - params.beta1) * gx;
+  state.m[1] = params.beta1 * state.m[1] + (1 - params.beta1) * gy;
+  
+  state.v[0] = params.beta2 * state.v[0] + (1 - params.beta2) * gx * gx;
+  state.v[1] = params.beta2 * state.v[1] + (1 - params.beta2) * gy * gy;
+  
+  // Bias correction
+  const mHat0 = state.m[0] / (1 - Math.pow(params.beta1, state.t));
+  const mHat1 = state.m[1] / (1 - Math.pow(params.beta1, state.t));
+  const vHat0 = state.v[0] / (1 - Math.pow(params.beta2, state.t));
+  const vHat1 = state.v[1] / (1 - Math.pow(params.beta2, state.t));
+  
+  // Update parameters
+  const dx = params.alpha * mHat0 / (Math.sqrt(vHat0) + params.eps);
+  const dy = params.alpha * mHat1 / (Math.sqrt(vHat1) + params.eps);
+  state.theta[0] -= dx;
+  state.theta[1] -= dy;
+  
+  // Store for visualization
+  state._gx = gx; state._gy = gy;
+  state._mHat0 = mHat0; state._mHat1 = mHat1;
+  state._vHat0 = vHat0; state._vHat1 = vHat1;
+  state._dx = dx; state._dy = dy;
+  
+  // Trail
+  const h = loss(state.theta[0], state.theta[1]);
+  trailPositions.push(state.theta[0], h, state.theta[1]);
+  if (trailPositions.length > MAX_TRAIL * 3) {
+    trailPositions = trailPositions.slice(-MAX_TRAIL * 3);
+  }
+}
+
+// ============ Update Visuals ============
+const VEC_SCALE = 0.4;
+
+function updateVisuals() {
+  const [x, y] = state.theta;
+  const h = loss(x, y);
+  
+  // Particle
+  particle.position.set(x, h + 0.12, y);
+  
+  // Trail
+  const trailPos = new Float32Array(trailPositions);
+  trailGeometry.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
+  trailGeometry.computeBoundingSphere();
+  
+  // Base position for arrows
+  const base = new THREE.Vector3(x, h + 0.15, y);
+  
+  // 1. Raw gradient (uphill, red)
+  const gVec = new THREE.Vector3(state._gx * VEC_SCALE, 0, state._gy * VEC_SCALE);
+  positionArrow(arrowGrad, base, gVec, 0xff5555);
+  
+  // 2. Momentum / first moment (blue)
+  const mVec = new THREE.Vector3(state._mHat0 * VEC_SCALE, 0, state._mHat1 * VEC_SCALE);
+  positionArrow(arrowMom, base, mVec, 0x5599ff);
+  
+  // 3. Effective step (green, downhill)
+  const stepVec = new THREE.Vector3(-state._dx, 0, -state._dy);
+  positionArrow(arrowStep, base, stepVec, 0x55ff99);
+  
+  // 4. Adaptive metric ellipsoid
+  const scale0 = 0.8 / Math.sqrt(Math.max(state._vHat0, 1e-4));
+  const scale1 = 0.8 / Math.sqrt(Math.max(state._vHat1, 1e-4));
+  ellipsoid.position.set(x, h + 0.15, y);
+  ellipsoid.scale.set(scale0, 0.3, scale1);
+  ellipseWire.position.copy(ellipsoid.position);
+  ellipseWire.scale.copy(ellipsoid.scale);
+  
+  // Update readout
+  document.getElementById('r-t').textContent = state.t;
+  document.getElementById('r-t1').textContent = x.toFixed(3);
+  document.getElementById('r-t2').textContent = y.toFixed(3);
+  document.getElementById('r-m1').textContent = state.m[0].toFixed(4);
+  document.getElementById('r-m2').textContent = state.m[1].toFixed(4);
+  document.getElementById('r-v1').textContent = state.v[0].toFixed(4);
+  document.getElementById('r-v2').textContent = state.v[1].toFixed(4);
+  document.getElementById('r-loss').textContent = h.toFixed(4);
+}
+
+function positionArrow(arrowGroup, base, vec, color) {
+  const len = vec.length();
+  if (len < 0.001) {
+    arrowGroup.visible = false;
+    return;
+  }
+  arrowGroup.visible = true;
+  arrowGroup.position.copy(base);
+  
+  const dir = vec.clone().normalize();
+  const up = new THREE.Vector3(0, 1, 0);
+  const quat = new THREE.Quaternion().setFromUnitVectors(up, dir);
+  arrowGroup.quaternion.copy(quat);
+  
+  arrowGroup.scale.y = len;
+  arrowGroup.scale.x = 1;
+  arrowGroup.scale.z = 1;
+}
+
+// ============ Controls ============
+const alphaSlider = document.getElementById('alpha');
+const beta1Slider = document.getElementById('beta1');
+const beta2Slider = document.getElementById('beta2');
+
+alphaSlider.addEventListener('input', e => {
+  params.alpha = parseFloat(e.target.value);
+  document.getElementById('alpha-val').textContent = params.alpha.toFixed(3);
+});
+beta1Slider.addEventListener('input', e => {
+  params.beta1 = parseFloat(e.target.value);
+  document.getElementById('beta1-val').textContent = params.beta1.toFixed(3);
+});
+beta2Slider.addEventListener('input', e => {
+  params.beta2 = parseFloat(e.target.value);
+  document.getElementById('beta2-val').textContent = params.beta2.toFixed(4);
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  state.theta = [2.5, 2.5];
+  state.m = [0, 0];
+  state.v = [0, 0];
+  state.t = 0;
+  trailPositions = [];
+  adamStep(); // prime with one step
+  updateVisuals();
+});
+
+document.getElementById('btn-pause').addEventListener('click', (e) => {
+  state.running = !state.running;
+  e.target.textContent = state.running ? 'Pause' : 'Play';
+});
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  adamStep();
+  updateVisuals();
+});
+
+// ============ Animation Loop ============
+let stepAccumulator = 0;
+const STEPS_PER_SECOND = 15;
+
+function animate(time) {
+  requestAnimationFrame(animate);
+  controls.update();
+  
+  if (state.running) {
+    stepAccumulator += STEPS_PER_SECOND / 60;
+    while (stepAccumulator >= 1) {
+      adamStep();
+      stepAccumulator -= 1;
+    }
+  }
+  
+  updateVisuals();
+  renderer.render(scene, camera);
+}
+
+// Initialize
+adamStep();
+updateVisuals();
+animate(0);
+
+// Resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>

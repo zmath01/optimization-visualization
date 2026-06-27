@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep & Cheap Learning Paper Analysis - Optimization Visualization</title>
+    
+    <!-- MathJax -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+    
+    <!-- highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    
+    <!-- highlight.js line numbers plugin -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script>hljs.initLineNumbersOnLoad();</script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+            background: #f8f9fa;
+            color: #1a1a2e;
+            line-height: 1.8;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+        .paper-header {
+            background: linear-gradient(135deg, #1a365d 0%, #2d5a87 100%);
+            color: #fff;
+            padding: 2.5rem 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+        .paper-header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .paper-header .subtitle {
+            font-size: 1rem;
+            opacity: 0.85;
+        }
+        .nav-bar {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .nav-bar a {
+            color: #2d5a87;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .nav-bar a:hover { text-decoration: underline; }
+        .nav-bar .sep { color: #cbd5e1; }
+        
+        /* Content styling */
+        .content h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a365d;
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2d5a87;
+            margin: 1.5rem 0 0.75rem;
+        }
+        .content h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #4a6fa5;
+            margin: 1.25rem 0 0.5rem;
+        }
+        .content p { margin-bottom: 1rem; }
+        .content ul, .content ol { margin: 0.5rem 0 1rem 1.5rem; }
+        .content li { margin-bottom: 0.25rem; }
+        
+        /* Tables */
+        .content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+        .content th {
+            background: #1a365d;
+            color: #fff;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            font-weight: 600;
+        }
+        .content td {
+            padding: 0.5rem 0.8rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .content tr:nth-child(even) { background: #f1f5f9; }
+        .content tr:hover { background: #e2e8f0; }
+        
+        /* Code blocks */
+        .content pre {
+            background: #1e1e2e !important;
+            color: #cdd6f4 !important;
+            border-radius: 8px;
+            padding: 1rem 0 !important;
+            margin: 1rem 0;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            position: relative;
+        }
+        .content code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+        }
+        .content pre code {
+            padding: 0 !important;
+            background: transparent !important;
+        }
+        /* Inline code */
+        .content p code, .content li code {
+            background: #e2e8f0;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+        
+        /* highlight.js line numbers */
+        .hljs-ln-numbers {
+            text-align: right;
+            color: #6c7086 !important;
+            border-right: 1px solid #313244 !important;
+            padding: 0 0.8rem 0 0.5rem !important;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .hljs-ln-code {
+            padding-left: 1rem !important;
+        }
+        
+        /* Blockquotes */
+        .content blockquote {
+            border-left: 4px solid #2d5a87;
+            background: #f1f5f9;
+            padding: 0.75rem 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        /* Footers */
+        .footer {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            color: #6c7086;
+            font-size: 0.85rem;
+        }
+        .footer a { color: #2d5a87; text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+        
+        /* Images */
+        .content img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container { padding: 1rem; }
+            .paper-header { padding: 1.5rem; }
+            .paper-header h1 { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="paper-header">
+            <h1>Deep & Cheap Learning Paper Analysis</h1>
+            <div class="subtitle">Optimization & Deep Learning Paper Analysis</div>
+        </div>
+        
+        <div class="nav-bar">
+            <a href="../index.html">Home</a>
+            <span class="sep">/</span>
+            <span>Deep & Cheap Learning Paper Analysis</span>
+        </div>
+        
+        <div class="content">
+<h1 id="paper-analysis-why-does-deep-and-cheap-learning-work-so-well">Paper Analysis: “Why does deep and cheap learning work so well?”</h1>
+<p><strong>Authors</strong>: Henry W. Lin, Max Tegmark, David Rolnick</p>
+<p><strong>Affiliation</strong>: Dept. of Physics, Harvard University; Dept. of Physics &amp; Mathematics, MIT</p>
+<p><strong>Published in</strong>: <em>Journal of Statistical Physics</em> (2017)</p>
+<p><strong>arXiv</strong>: 1608.08225</p>
+<p><strong>Core Thesis</strong>: The success of deep learning depends not only on mathematics but also on physics. Properties frequently encountered in physics — <strong>symmetry, locality, compositionality, and polynomial log-probability</strong> — translate into exceptionally simple neural networks that can be approximated with <strong>exponentially fewer parameters</strong> than generic functions.</p>
+<hr />
+<h2 id="1-core-ideas-and-key-formulas">1. Core Ideas and Key Formulas</h2>
+<h3 id="11-the-swindle-why-cheap-learning-works">1.1 The “Swindle”: Why Cheap Learning Works</h3>
+<p>There are <strong>TEX_BLOCK_11</strong> different Boolean functions of <strong>TEX_BLOCK_12</strong> variables, so a generic function requires at least <strong>TEX_BLOCK_13</strong> bits to describe. The fact that neural networks of feasible size are nonetheless so useful implies that <strong>the class of functions we care about approximating is dramatically smaller</strong>.</p>
+<h3 id="12-bayes-theorem-in-hamiltonian-form">1.2 Bayes’ Theorem in Hamiltonian Form</h3>
+<p>Define the <strong>Hamiltonian</strong> (negative log-probability):</p>
+<p><strong>TEX_BLOCK_0</strong></p>
+<p>Bayes’ theorem becomes the <strong>Boltzmann form</strong>:</p>
+<p><strong>TEX_BLOCK_1</strong></p>
+<p>where</p>
+<p><strong>TEX_BLOCK_2</strong></p>
+<p>In vector notation:</p>
+<p><strong>TEX_BLOCK_3</strong></p>
+<p>This is equivalent to a <strong>softmax</strong> layer:</p>
+<p><strong>TEX_BLOCK_4</strong></p>
+<h3 id="13-feedforward-neural-network">1.3 Feedforward Neural Network</h3>
+<p>A standard <strong>TEX_BLOCK_14</strong>-layer feedforward neural network:</p>
+<p><strong>TEX_BLOCK_5</strong></p>
+<p>where <strong>TEX_BLOCK_15</strong> are affine transformations.</p>
+<h3 id="14-polynomial-expansion-of-hamiltonians">1.4 Polynomial Expansion of Hamiltonians</h3>
+<p>Any Hamiltonian can be expanded as a power series:</p>
+<p><strong>TEX_BLOCK_6</strong></p>
+<p>For <strong>TEX_BLOCK_16</strong> variables, there are <strong>TEX_BLOCK_17</strong> terms of degree up to <strong>TEX_BLOCK_18</strong>.</p>
+<p>For <strong>binary inputs</strong> (<strong>TEX_BLOCK_19</strong>), since <strong>TEX_BLOCK_20</strong>:</p>
+<p><strong>TEX_BLOCK_7</strong></p>
+<h3 id="15-multiplication-with-4-neurons-key-theorem">1.5 Multiplication with 4 Neurons (Key Theorem)</h3>
+<p><strong>Theorem</strong>: Any smooth non-linear activation function <strong>TEX_BLOCK_21</strong> can approximate a multiplication gate arbitrarily well using <strong>only 4 neurons</strong> in a single hidden layer.</p>
+<p>Let <strong>TEX_BLOCK_22</strong>.</p>
+<p>Define the <strong>multiplication approximator</strong>:</p>
+<p><strong>TEX_BLOCK_8</strong></p>
+<p>Then:</p>
+<p><strong>TEX_BLOCK_9</strong></p>
+<p>By scaling inputs small and outputs large, this approximation becomes <strong>exact</strong> in the limit.</p>
+<p><strong>Corollary</strong>: Any multivariate polynomial can be approximated by a neural network of <strong>fixed finite size</strong> (independent of accuracy <strong>TEX_BLOCK_23</strong>).</p>
+<h3 id="16-hierarchical-processes-and-markov-chains">1.6 Hierarchical Processes and Markov Chains</h3>
+<p>Physical and machine-learning data often have <strong>hierarchical structure</strong>:</p>
+<p><strong>TEX_BLOCK_10</strong></p>
+<p>where <strong>TEX_BLOCK_24</strong> is the probability distribution at hierarchy level <strong>TEX_BLOCK_25</strong>, and <strong>TEX_BLOCK_26</strong> is a Markov transition matrix.</p>
+<h3 id="17-no-flattening-theorems">1.7 No-Flattening Theorems</h3>
+<p>The paper proves various “no-flattening theorems” showing that <strong>efficient deep networks cannot be accurately approximated by shallow ones without efficiency loss</strong>.</p>
+<p><strong>Key example</strong>: <strong>TEX_BLOCK_27</strong> variables <strong>cannot be multiplied</strong> using fewer than <strong>TEX_BLOCK_28</strong> neurons in a single hidden layer.</p>
+<hr />
+<h2 id="2-detailed-explanation-of-mathematical-symbols">2. Detailed Explanation of Mathematical Symbols</h2>
+<h3 id="table-1-symbol-dictionary">Table 1: Symbol Dictionary</h3>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Meaning</th>
+<th>Concrete Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>TEX_BLOCK_29</strong></td>
+<td>Conditional probability of data <strong>TEX_BLOCK_30</strong> given class/parameter <strong>TEX_BLOCK_31</strong></td>
+<td>Probability of a specific image of a cat given the label "cat"</td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_32</strong></td>
+<td>Conditional probability of class/parameter <strong>TEX_BLOCK_33</strong> given data <strong>TEX_BLOCK_34</strong></td>
+<td>Probability that an image is a cat given its pixel values (classification)</td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_35</strong></td>
+<td><strong>Hamiltonian</strong>: <strong>TEX_BLOCK_36</strong>, the “surprisal” or negative log-likelihood</td>
+<td>If <strong>TEX_BLOCK_37</strong>, then <strong>TEX_BLOCK_38</strong></td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_39</strong></td>
+<td>Prior self-information: <strong>TEX_BLOCK_40</strong></td>
+<td>If 10% of images are cats, <strong>TEX_BLOCK_41</strong>, then <strong>TEX_BLOCK_42</strong></td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_43</strong></td>
+<td>Partition function (normalization constant)</td>
+<td>Sum over all possible classes <strong>TEX_BLOCK_44</strong> of <strong>TEX_BLOCK_45</strong></td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_46</strong></td>
+<td>Vector of probabilities <strong>TEX_BLOCK_47</strong> for all <strong>TEX_BLOCK_48</strong></td>
+<td><strong>TEX_BLOCK_49</strong></td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_50</strong></td>
+<td>Vector of Hamiltonians <strong>TEX_BLOCK_51</strong> for all <strong>TEX_BLOCK_52</strong></td>
+<td><strong>TEX_BLOCK_53</strong></td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_54</strong></td>
+<td>Vector of prior self-informations <strong>TEX_BLOCK_55</strong></td>
+<td><strong>TEX_BLOCK_56</strong></td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_57</strong></td>
+<td><strong>Softmax</strong> function: <strong>TEX_BLOCK_58</strong></td>
+<td>Normalizes logits to a probability distribution</td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_59</strong></td>
+<td>Element-wise non-linear activation function (e.g., ReLU, sigmoid)</td>
+<td><strong>TEX_BLOCK_60</strong> for ReLU</td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_61</strong></td>
+<td>Weight matrix of layer <strong>TEX_BLOCK_62</strong></td>
+<td>For a fully-connected layer with 256 inputs and 128 outputs: <strong>TEX_BLOCK_63</strong></td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_64</strong></td>
+<td>Bias vector of layer <strong>TEX_BLOCK_65</strong></td>
+<td><strong>TEX_BLOCK_66</strong></td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_67</strong></td>
+<td>Affine transformation: <strong>TEX_BLOCK_68</strong></td>
+<td>A linear layer followed by bias addition</td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_69</strong></td>
+<td>Second derivative (curvature) of activation function at origin</td>
+<td>For <strong>TEX_BLOCK_70</strong>, <strong>TEX_BLOCK_71</strong> at origin; need to shift bias</td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_72</strong></td>
+<td>Multiplication approximator using 4 neurons</td>
+<td>Approximates <strong>TEX_BLOCK_73</strong> using a combination of <strong>TEX_BLOCK_74</strong> evaluations</td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_75</strong></td>
+<td>Probability vector at hierarchy level <strong>TEX_BLOCK_76</strong></td>
+<td>Distribution of states at the <strong>TEX_BLOCK_77</strong>-th level of a hierarchical generative process</td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_78</strong></td>
+<td>Markov transition matrix between hierarchy levels</td>
+<td><strong>TEX_BLOCK_79</strong> maps <strong>TEX_BLOCK_80</strong> in a Markov chain</td>
+</tr>
+</tbody>
+</table>
+<h3 id="table-2-physicsmachine-learning-dictionary">Table 2: Physics–Machine Learning Dictionary</h3>
+<table>
+<thead>
+<tr>
+<th>Physics</th>
+<th>Machine Learning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hamiltonian</td>
+<td>Surprisal <strong>TEX_BLOCK_81</strong></td>
+</tr>
+<tr>
+<td>Simple <strong>TEX_BLOCK_82</strong></td>
+<td>Cheap learning</td>
+</tr>
+<tr>
+<td>Quadratic <strong>TEX_BLOCK_83</strong></td>
+<td>Gaussian <strong>TEX_BLOCK_84</strong></td>
+</tr>
+<tr>
+<td>Locality</td>
+<td>Sparsity</td>
+</tr>
+<tr>
+<td>Translationally symmetric <strong>TEX_BLOCK_85</strong></td>
+<td>Convnet</td>
+</tr>
+<tr>
+<td>Computing <strong>TEX_BLOCK_86</strong> from <strong>TEX_BLOCK_87</strong></td>
+<td>Softmaxing</td>
+</tr>
+<tr>
+<td>Spin</td>
+<td>Bit</td>
+</tr>
+<tr>
+<td>Free energy difference</td>
+<td>KL-divergence</td>
+</tr>
+<tr>
+<td>Effective theory</td>
+<td>Nearly lossless data distillation</td>
+</tr>
+<tr>
+<td>Irrelevant operator</td>
+<td>Noise</td>
+</tr>
+<tr>
+<td>Relevant operator</td>
+<td>Feature</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-visualization-code">3. Visualization Code</h2>
+<div class="codehilite"><pre><span></span><code><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Visualization for &quot;Why does deep and cheap learning work so well?&quot;</span>
+<span class="sd">Lin, Tegmark &amp; Rolnick (Journal of Statistical Physics, 2017)</span>
+<span class="sd">arXiv: 1608.08225</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">matplotlib.patches</span> <span class="kn">import</span> <span class="n">FancyBboxPatch</span><span class="p">,</span> <span class="n">Circle</span><span class="p">,</span> <span class="n">FancyArrowPatch</span>
+<span class="kn">import</span> <span class="nn">matplotlib.patches</span> <span class="k">as</span> <span class="nn">mpatches</span>
+<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">softmax</span>
+
+
+<span class="c1"># ============================================================</span>
+<span class="c1"># 1. Multiplication with 4 Neurons (Figure 2 from paper)</span>
+<span class="c1"># ============================================================</span>
+<span class="k">def</span> <span class="nf">visualize_multiplication_gate</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Visualize the multiplication approximator with 4 neurons&quot;&quot;&quot;</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+    <span class="c1"># ---- Left: Multiplication gate architecture ----</span>
+    <span class="n">ax1</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Inputs</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$u$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$v$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Multiplication by constants</span>
+    <span class="n">constants</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="c1"># Draw connections with constant multipliers</span>
+    <span class="n">y_positions</span> <span class="o">=</span> <span class="p">[</span><span class="mf">4.5</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">cu</span><span class="p">,</span> <span class="n">cv</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y_idx</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">constants</span><span class="p">):</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">y_positions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="c1"># From u</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">y</span><span class="p">],</span> <span class="s1">&#39;k-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="p">(</span><span class="mf">4.5</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">cu</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">)</span>
+
+        <span class="c1"># From v</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">y</span><span class="p">],</span> <span class="s1">&#39;k-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="p">(</span><span class="mf">1.5</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">cv</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Sigma boxes (non-linear activation)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">y_positions</span><span class="p">):</span>
+        <span class="n">box</span> <span class="o">=</span> <span class="n">FancyBboxPatch</span><span class="p">((</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="mf">0.4</span><span class="p">),</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span>
+                              <span class="n">boxstyle</span><span class="o">=</span><span class="s2">&quot;round,pad=0.05&quot;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;#e74c3c&#39;</span><span class="p">,</span>
+                              <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;#fadbd8&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">box</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">2.9</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\sigma$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Summation nodes (circles)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">y_positions</span><span class="p">):</span>
+        <span class="c1"># From sigma to summation</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mf">3.3</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span> <span class="p">[</span><span class="n">y</span><span class="p">,</span> <span class="n">y</span><span class="p">],</span> <span class="s1">&#39;k-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Connections to summation nodes</span>
+    <span class="c1"># Row 1: sigma outputs to summation with coefficients</span>
+    <span class="n">sum_positions</span> <span class="o">=</span> <span class="p">[</span><span class="mf">4.5</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">y_from</span><span class="p">,</span> <span class="n">y_to</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">y_positions</span><span class="p">,</span> <span class="n">sum_positions</span><span class="p">)):</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">],</span> <span class="p">[</span><span class="n">y_from</span><span class="p">,</span> <span class="n">y_to</span><span class="p">],</span> <span class="s1">&#39;k-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Summation nodes (circles)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sum_positions</span><span class="p">):</span>
+        <span class="n">circle</span> <span class="o">=</span> <span class="n">Circle</span><span class="p">((</span><span class="mf">4.8</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="mf">0.3</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;lightyellow&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">circle</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">4.8</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\Sigma$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Connect summation nodes to output</span>
+    <span class="c1"># The four summation outputs feed into final output with coefficients</span>
+    <span class="c1"># In the paper: m(u,v) = [σ(u+v)+σ(-u-v)-σ(u-v)-σ(-u+v)] / (4σ₂)</span>
+    <span class="c1"># The coefficients are: +1, +1, -1, -1 then divide by 4σ₂</span>
+
+    <span class="c1"># Draw connections from summation nodes to output</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sum_positions</span><span class="p">):</span>
+        <span class="n">coeff</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mf">5.1</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">],</span> <span class="p">[</span><span class="n">y</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span> <span class="s1">&#39;k-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">5.5</span><span class="p">,</span> <span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="mf">3.0</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">0.2</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">coeff</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Final division by 4σ₂</span>
+    <span class="n">div_box</span> <span class="o">=</span> <span class="n">FancyBboxPatch</span><span class="p">((</span><span class="mf">6.2</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">),</span> <span class="mf">1.2</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+                              <span class="n">boxstyle</span><span class="o">=</span><span class="s2">&quot;round,pad=0.05&quot;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;#2980b9&#39;</span><span class="p">,</span>
+                              <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;#d6eaf8&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">div_box</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">6.8</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\div 4\sigma_2$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Output</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mf">7.4</span><span class="p">,</span> <span class="mf">8.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span> <span class="s1">&#39;k-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">9.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$m(u,v) \approx uv$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Title</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">5.7</span><span class="p">,</span> <span class="s1">&#39;Multiplication Approximator (4 Neurons)&#39;</span><span class="p">,</span>
+             <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">5.2</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$m(u,v) = \frac{\sigma(u+v) + \sigma(-u-v) - \sigma(u-v) - \sigma(-u+v)}{4\sigma_2}$&#39;</span><span class="p">,</span>
+             <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;italic&#39;</span><span class="p">)</span>
+
+    <span class="c1"># ---- Right: Accuracy vs lambda ----</span>
+    <span class="n">ax2</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Simulate accuracy as a function of λ (input scaling)</span>
+    <span class="n">lambda_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="c1"># Error roughly ~ 1/λ² (from Taylor expansion)</span>
+    <span class="n">error</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">lambda_vals</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">1e-6</span><span class="p">)</span>
+    <span class="n">error</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">ax2</span><span class="o">.</span><span class="n">semilogx</span><span class="p">(</span><span class="n">lambda_vals</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;Approximation error $\propto 1/\lambda^2$&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;1</span><span class="si">% e</span><span class="s1">rror threshold&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-.&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$\lambda \approx 10$ (practical)&#39;</span><span class="p">)</span>
+
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$\lambda$ (input scaling factor)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Approximation Error&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Accuracy vs. Input Scaling&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+
+    <span class="c1"># Annotation</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;Arbitrarily accurate</span><span class="se">\n</span><span class="s1">as $\lambda \to \infty$&#39;</span><span class="p">,</span>
+                 <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mf">0.0001</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">),</span>
+                 <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="n">ax2</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;Practical regime</span><span class="se">\n</span><span class="s1">$\lambda \sim 10$&#39;</span><span class="p">,</span>
+                 <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">),</span>
+                 <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+
+<span class="c1"># ============================================================</span>
+<span class="c1"># 2. Hamiltonian Decomposition (Polynomial Expansion)</span>
+<span class="c1"># ============================================================</span>
+<span class="k">def</span> <span class="nf">visualize_hamiltonian_decomposition</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Visualize the polynomial expansion of Hamiltonians&quot;&quot;&quot;</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+    <span class="c1"># ---- Left: Generic vs. Structured Hamiltonians ----</span>
+    <span class="n">ax1</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Simulate number of parameters</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">21</span><span class="p">)</span>
+
+    <span class="c1"># Generic polynomial (all terms): ~ 2^n</span>
+    <span class="n">generic_params</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">n</span>
+
+    <span class="c1"># Low-degree polynomial (d=2): ~ n²/2</span>
+    <span class="n">low_degree_params</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">n</span> <span class="o">**</span> <span class="mi">2</span>
+
+    <span class="c1"># Local polynomial: ~ n</span>
+    <span class="n">local_params</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">n</span>
+
+    <span class="c1"># Symmetric + local + low-degree: ~ constant</span>
+    <span class="n">symmetric_params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span>
+
+    <span class="n">ax1</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">generic_params</span><span class="p">,</span> <span class="s1">&#39;r-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Generic (all terms)&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">low_degree_params</span><span class="p">,</span> <span class="s1">&#39;orange&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Low-degree (d=2)&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">local_params</span><span class="p">,</span> <span class="s1">&#39;g-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Local (nearest-neighbor)&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">symmetric_params</span><span class="p">,</span> <span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Symmetric + Local + Low-degree&#39;</span><span class="p">)</span>
+
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Number of variables (n)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Number of Parameters&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Parameter Count: Generic vs. Structured Hamiltonians&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+
+    <span class="c1"># Annotation</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;Exponential growth</span><span class="se">\n</span><span class="s1">(impossible for large n)&#39;</span><span class="p">,</span>
+                 <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">15</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">12</span><span class="p">),</span>
+                 <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
+
+    <span class="n">ax1</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;Linear or constant</span><span class="se">\n</span><span class="s1">(cheap learning!)&#39;</span><span class="p">,</span>
+                 <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
+                 <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">)</span>
+
+    <span class="c1"># ---- Right: Physics examples ----</span>
+    <span class="n">ax2</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Table of physics examples</span>
+    <span class="n">examples</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;Harmonic Oscillator&#39;</span><span class="p">,</span> <span class="s1">&#39;Quadratic (d=2)&#39;</span><span class="p">,</span> <span class="s1">&#39;3 parameters&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;Ising Model&#39;</span><span class="p">,</span> <span class="s1">&#39;Quadratic (d=2), local&#39;</span><span class="p">,</span> <span class="s1">&#39;O(n) parameters&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;Standard Model&#39;</span><span class="p">,</span> <span class="s1">&#39;Quartic (d=4), symmetric, local&#39;</span><span class="p">,</span> <span class="s1">&#39;32 parameters&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;Maxwell Eqs&#39;</span><span class="p">,</span> <span class="s1">&#39;Linear (d=1), local&#39;</span><span class="p">,</span> <span class="s1">&#39;O(n²) parameters&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;Navier-Stokes&#39;</span><span class="p">,</span> <span class="s1">&#39;Quadratic (d=2), local&#39;</span><span class="p">,</span> <span class="s1">&#39;O(n²) parameters&#39;</span><span class="p">),</span>
+    <span class="p">]</span>
+
+    <span class="c1"># Header</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">4.8</span><span class="p">,</span> <span class="s1">&#39;Physics Hamiltonians are Low-Order Polynomials&#39;</span><span class="p">,</span>
+             <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="n">y_pos</span> <span class="o">=</span> <span class="mf">4.2</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">degree</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">examples</span><span class="p">:</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">y_pos</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.45</span><span class="p">,</span> <span class="n">y_pos</span><span class="p">,</span> <span class="n">degree</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;italic&#39;</span><span class="p">)</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">y_pos</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#2980b9&#39;</span><span class="p">)</span>
+        <span class="n">y_pos</span> <span class="o">-=</span> <span class="mf">0.6</span>
+
+    <span class="c1"># Box around the table</span>
+    <span class="n">rect</span> <span class="o">=</span> <span class="n">FancyBboxPatch</span><span class="p">((</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">1.8</span><span class="p">),</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">3.2</span><span class="p">,</span>
+                           <span class="n">boxstyle</span><span class="o">=</span><span class="s2">&quot;round,pad=0.05&quot;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;#2c3e50&#39;</span><span class="p">,</span>
+                           <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">rect</span><span class="p">)</span>
+
+    <span class="n">ax2</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="s1">&#39;Low polynomial order (d=2 to 4) is common in physics&#39;</span><span class="p">,</span>
+             <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;italic&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#555&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Citation</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="s1">&#39;From Lin, Tegmark &amp; Rolnick (2017)&#39;</span><span class="p">,</span>
+             <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;italic&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#888&#39;</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+
+<span class="c1"># ============================================================</span>
+<span class="c1"># 3. Hierarchical Structure (Figure 3 from paper)</span>
+<span class="c1"># ============================================================</span>
+<span class="k">def</span> <span class="nf">visualize_hierarchical_structure</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Visualize hierarchical / compositional structure&quot;&quot;&quot;</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+    <span class="c1"># ---- Left: Hierarchical Markov chain ----</span>
+    <span class="n">ax1</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Hierarchy levels</span>
+    <span class="n">levels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;$y_0$&#39;</span><span class="p">,</span> <span class="s1">&#39;$y_1$&#39;</span><span class="p">,</span> <span class="s1">&#39;$y_2$&#39;</span><span class="p">,</span> <span class="s1">&#39;$y_3$&#39;</span><span class="p">,</span> <span class="s1">&#39;$y_4$&#39;</span><span class="p">,</span> <span class="s1">&#39;...&#39;</span><span class="p">,</span> <span class="s1">&#39;$y_n$&#39;</span><span class="p">]</span>
+    <span class="n">x_positions</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.5</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">,</span> <span class="mf">9.5</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">levels</span><span class="p">,</span> <span class="n">x_positions</span><span class="p">)):</span>
+        <span class="c1"># Box</span>
+        <span class="n">box</span> <span class="o">=</span> <span class="n">FancyBboxPatch</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">2.0</span> <span class="o">-</span> <span class="mf">0.4</span><span class="p">),</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span>
+                              <span class="n">boxstyle</span><span class="o">=</span><span class="s2">&quot;round,pad=0.05&quot;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;#2980b9&#39;</span><span class="p">,</span>
+                              <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;#d6eaf8&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">box</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Arrow to next</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="n">x_positions</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">),</span>
+                         <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#e74c3c&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">2.5</span><span class="p">))</span>
+
+    <span class="c1"># Markov matrix label above arrows</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">mid_x</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_positions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">x_positions</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">mid_x</span><span class="p">,</span> <span class="mf">2.8</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\mathbf{M}_{i+1}$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span>
+                 <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#e74c3c&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Equation</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\mathbf{p}_i = \mathbf{M}_i \mathbf{p}_{i-1}$&#39;</span><span class="p">,</span>
+             <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">,</span> <span class="s1">&#39;Hierarchical Generative Process (Markov Chain)&#39;</span><span class="p">,</span>
+             <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="s1">&#39;Each level depends only on its immediate predecessor&#39;</span><span class="p">,</span>
+             <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;italic&#39;</span><span class="p">)</span>
+
+    <span class="c1"># ---- Right: Depth efficiency ----</span>
+    <span class="n">ax2</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Simulate number of neurons needed for shallow vs deep networks</span>
+    <span class="n">n_layers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">21</span><span class="p">)</span>
+    <span class="c1"># Shallow: exponential growth in neurons</span>
+    <span class="n">shallow_neurons</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">n_layers</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="c1"># Deep: linear growth in neurons</span>
+    <span class="n">deep_neurons</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">n_layers</span>
+
+    <span class="n">ax2</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">n_layers</span><span class="p">,</span> <span class="n">shallow_neurons</span><span class="p">,</span> <span class="s1">&#39;r-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Shallow Network (1 hidden layer)&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">n_layers</span><span class="p">,</span> <span class="n">deep_neurons</span><span class="p">,</span> <span class="s1">&#39;g-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Deep Network (hierarchical)&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Mark the &quot;no-flattening&quot; result</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;purple&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$n$ variables need $\geq 2^n$ neurons in 1 layer&#39;</span><span class="p">)</span>
+
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Problem Complexity / Hierarchy Depth&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Number of Neurons Required&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Depth Efficiency: Shallow vs. Deep Networks&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+
+    <span class="c1"># Annotations</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;Exponential growth</span><span class="se">\n</span><span class="s1">(impractical for large n)&#39;</span><span class="p">,</span>
+                 <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="mi">15</span><span class="o">/</span><span class="mi">2</span><span class="p">)),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">7</span><span class="p">),</span>
+                 <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
+
+    <span class="n">ax2</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;Linear growth</span><span class="se">\n</span><span class="s1">(efficient!)&#39;</span><span class="p">,</span>
+                 <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">15</span><span class="p">),</span>
+                 <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;green&#39;</span><span class="p">)</span>
+
+    <span class="c1"># No-flattening theorem</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;No-Flattening Theorem:&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">350</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$n$ variables need $\geq 2^n$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">250</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;neurons in a single layer&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+
+<span class="c1"># ============================================================</span>
+<span class="c1"># 4. Symmetry, Locality, and Polynomial Order</span>
+<span class="c1"># ============================================================</span>
+<span class="k">def</span> <span class="nf">visualize_cheap_learning_factors</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Visualize the three factors enabling cheap learning&quot;&quot;&quot;</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+
+    <span class="c1"># Data</span>
+    <span class="n">factors</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Generic</span><span class="se">\n</span><span class="s1">Function&#39;</span><span class="p">,</span> <span class="s1">&#39;+ Low</span><span class="se">\n</span><span class="s1">Polynomial Order&#39;</span><span class="p">,</span> <span class="s1">&#39;+ Locality&#39;</span><span class="p">,</span> <span class="s1">&#39;+ Symmetry&#39;</span><span class="p">]</span>
+    <span class="n">param_counts</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="o">**</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>  <span class="c1"># for n=10</span>
+
+    <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;#e74c3c&#39;</span><span class="p">,</span> <span class="s1">&#39;#f39c12&#39;</span><span class="p">,</span> <span class="s1">&#39;#3498db&#39;</span><span class="p">,</span> <span class="s1">&#39;#2ecc71&#39;</span><span class="p">]</span>
+
+    <span class="n">bars</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">factors</span><span class="p">,</span> <span class="n">param_counts</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+
+    <span class="c1"># Add value labels</span>
+    <span class="k">for</span> <span class="n">bar</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">bars</span><span class="p">,</span> <span class="n">param_counts</span><span class="p">):</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="n">bar</span><span class="o">.</span><span class="n">get_height</span><span class="p">()</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">bar</span><span class="o">.</span><span class="n">get_x</span><span class="p">()</span> <span class="o">+</span> <span class="n">bar</span><span class="o">.</span><span class="n">get_width</span><span class="p">()</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span> <span class="n">height</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">count</span><span class="si">:</span><span class="s1">.0f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;bottom&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Number of Parameters (n=10)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;How Symmetry, Locality &amp; Low Order Enable &quot;Cheap Learning&quot;&#39;</span><span class="p">,</span>
+                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+
+    <span class="c1"># Add reduction annotations</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;×500 reduction&#39;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">500</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">200</span><span class="p">),</span>
+                <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#e74c3c&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#e74c3c&#39;</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;×25 reduction&#39;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">50</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span>
+                <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#f39c12&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#f39c12&#39;</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;×6.7 reduction&#39;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+                <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#3498db&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#3498db&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Example from paper</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s1">&#39;Example: Microphone recording</span><span class="se">\n</span><span class="s1">n=10 time steps&#39;</span><span class="p">,</span>
+            <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;italic&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#555&#39;</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+
+<span class="c1"># ============================================================</span>
+<span class="c1"># 5. Softmax and Hamiltonian Visualization</span>
+<span class="c1"># ============================================================</span>
+<span class="k">def</span> <span class="nf">visualize_softmax_hamiltonian</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Visualize the relation between Hamiltonian and softmax output&quot;&quot;&quot;</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+    <span class="c1"># ---- Left: Hamiltonian landscape ----</span>
+    <span class="n">ax1</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="c1"># Simulate Hamiltonians for 3 classes</span>
+    <span class="n">H1</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">0.5</span>
+    <span class="n">H2</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">0.5</span>
+    <span class="n">H3</span> <span class="o">=</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">1.5</span>
+
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">H1</span><span class="p">,</span> <span class="s1">&#39;r-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$H_1(x)$ (class 1)&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">H2</span><span class="p">,</span> <span class="s1">&#39;g-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$H_2(x)$ (class 2)&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">H3</span><span class="p">,</span> <span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$H_3(x)$ (class 3)&#39;</span><span class="p">)</span>
+
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$\mathbf{x}$ (data)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$H_y(\mathbf{x})$ (Hamiltonian / surprisal)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Hamiltonians for Different Classes&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+
+    <span class="c1"># Mark a sample point</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;purple&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$\mathbf{x}=0.5$&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">H1</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">))],</span> <span class="s1">&#39;ro&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">H2</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">))],</span> <span class="s1">&#39;go&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">H3</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">))],</span> <span class="s1">&#39;bo&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+    <span class="c1"># ---- Right: Softmax output ----</span>
+    <span class="n">ax2</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Compute softmax from Hamiltonians (with μ=0 for simplicity)</span>
+    <span class="n">H_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">H1</span><span class="p">,</span> <span class="n">H2</span><span class="p">,</span> <span class="n">H3</span><span class="p">])</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="o">-</span><span class="n">H_matrix</span>  <span class="c1"># p(y|x) ∝ exp(-H_y(x))</span>
+    <span class="n">softmax_output</span> <span class="o">=</span> <span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">softmax_output</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="s1">&#39;r-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$p(y=1|\mathbf{x})$&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">softmax_output</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="s1">&#39;g-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$p(y=2|\mathbf{x})$&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">softmax_output</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:],</span> <span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$p(y=3|\mathbf{x})$&#39;</span><span class="p">)</span>
+
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$\mathbf{x}$ (data)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$p(y|\mathbf{x})$ (probability)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Softmax Output: $p(y|\mathbf{x}) = \text{softmax}(-H_y(\mathbf{x}))$&#39;</span><span class="p">,</span>
+                  <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">)</span>
+
+    <span class="c1"># Mark sample point</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;purple&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+
+<span class="c1"># ============================================================</span>
+<span class="c1"># Execute visualizations</span>
+<span class="c1"># ============================================================</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Why does deep and cheap learning work so well?&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Lin, Tegmark &amp; Rolnick (Journal of Statistical Physics, 2017)&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;arXiv: 1608.08225&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Visualizing Core Concepts...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;1. Multiplication with 4 Neurons (Theorem)...&quot;</span><span class="p">)</span>
+    <span class="n">visualize_multiplication_gate</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;2. Hamiltonian Decomposition...&quot;</span><span class="p">)</span>
+    <span class="n">visualize_hamiltonian_decomposition</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;3. Hierarchical Structure &amp; Depth Efficiency...&quot;</span><span class="p">)</span>
+    <span class="n">visualize_hierarchical_structure</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;4. Cheap Learning Factors (Symmetry, Locality, Low Order)...&quot;</span><span class="p">)</span>
+    <span class="n">visualize_cheap_learning_factors</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;5. Softmax and Hamiltonian Relation...&quot;</span><span class="p">)</span>
+    <span class="n">visualize_softmax_hamiltonian</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Key Takeaways:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;1. Neural networks can approximate any function, but generic functions&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   require exponentially many parameters.&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;2. Physics-inspired properties (symmetry, locality, low polynomial order)&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   enable &#39;cheap learning&#39; with far fewer parameters.&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;3. Multiplication can be approximated arbitrarily well with only 4 neurons.&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;4. Deep networks are more efficient than shallow ones for hierarchical data.&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;5. No-flattening theorems: n variables cannot be multiplied using fewer&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   than 2^n neurons in a single hidden layer.&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
+</code></pre></div>
+
+<h3 id="code-output-interpretation">Code Output Interpretation</h3>
+<table>
+<thead>
+<tr>
+<th>Visualization</th>
+<th>Content</th>
+<th>Key Insight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Multiplication Gate</strong></td>
+<td>Architecture using 4 neurons + accuracy vs. λ</td>
+<td>Any smooth nonlinearity can approximate multiplication arbitrarily well</td>
+</tr>
+<tr>
+<td><strong>Hamiltonian Decomposition</strong></td>
+<td>Parameter count: generic vs. structured</td>
+<td>Symmetry + locality + low order → O(1) parameters</td>
+</tr>
+<tr>
+<td><strong>Hierarchical Structure</strong></td>
+<td>Markov chain + depth efficiency</td>
+<td>Deep networks are exponentially more efficient for hierarchical data</td>
+</tr>
+<tr>
+<td><strong>Cheap Learning Factors</strong></td>
+<td>Reduction from generic to symmetric</td>
+<td>Each constraint reduces parameters dramatically</td>
+</tr>
+<tr>
+<td><strong>Softmax Hamiltonian</strong></td>
+<td>Hamiltonian → softmax probability</td>
+<td>Classification = softmax(−Hamiltonian)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-academic-sources">4. Academic Sources</h2>
+<ul>
+<li><strong>Original Paper</strong>: Lin, H. W., Tegmark, M., &amp; Rolnick, D. (2017). Why does deep and cheap learning work so well? <em>Journal of Statistical Physics</em>, 168(6), 1223-1247</li>
+<li><strong>arXiv Preprint</strong>: https://arxiv.org/abs/1608.08225</li>
+<li><strong>Published Version</strong>: https://link.springer.com/article/10.1007/s10955-017-1836-5</li>
+<li><strong>Journal</strong>: Journal of Statistical Physics, Springer</li>
+</ul>
+<h3 id="core-contributions-summary">Core Contributions Summary</h3>
+<ol>
+<li>
+<p><strong>Cheap Learning</strong>: The functions of practical interest can be approximated with <strong>exponentially fewer parameters</strong> than generic ones due to symmetry, locality, and low polynomial order</p>
+</li>
+<li>
+<p><strong>Multiplication with 4 Neurons</strong>: Any smooth nonlinear activation can approximate multiplication arbitrarily well using only 4 neurons in a single hidden layer</p>
+</li>
+<li>
+<p><strong>Hamiltonian Perspective</strong>: Classification problems reduce to computing Hamiltonians <strong>TEX_BLOCK_124</strong> followed by a softmax layer</p>
+</li>
+<li>
+<p><strong>No-Flattening Theorems</strong>: Efficient deep networks cannot be accurately approximated by shallow ones without efficiency loss; e.g., <strong>TEX_BLOCK_125</strong> variables cannot be multiplied using fewer than <strong>TEX_BLOCK_126</strong> neurons in a single hidden layer</p>
+</li>
+<li>
+<p><strong>Hierarchical Efficiency</strong>: When data has hierarchical/compositional structure (common in physics and machine learning), deep networks are exponentially more efficient than shallow ones</p>
+</li>
+</ol>
+        </div>
+        
+        <div class="footer">
+            <a href="../index.html">Back to Home</a> &middot;
+            <a href="https://github.com/zmath01/optimization-visualization">GitHub</a>
+        </div>
+    </div>
+</body>
+</html>

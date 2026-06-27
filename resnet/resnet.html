@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResNet Paper Analysis - Optimization Visualization</title>
+    
+    <!-- MathJax -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+    
+    <!-- highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    
+    <!-- highlight.js line numbers plugin -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script>hljs.initLineNumbersOnLoad();</script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+            background: #f8f9fa;
+            color: #1a1a2e;
+            line-height: 1.8;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+        .paper-header {
+            background: linear-gradient(135deg, #1a365d 0%, #2d5a87 100%);
+            color: #fff;
+            padding: 2.5rem 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+        .paper-header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .paper-header .subtitle {
+            font-size: 1rem;
+            opacity: 0.85;
+        }
+        .nav-bar {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .nav-bar a {
+            color: #2d5a87;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .nav-bar a:hover { text-decoration: underline; }
+        .nav-bar .sep { color: #cbd5e1; }
+        
+        /* Content styling */
+        .content h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a365d;
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2d5a87;
+            margin: 1.5rem 0 0.75rem;
+        }
+        .content h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #4a6fa5;
+            margin: 1.25rem 0 0.5rem;
+        }
+        .content p { margin-bottom: 1rem; }
+        .content ul, .content ol { margin: 0.5rem 0 1rem 1.5rem; }
+        .content li { margin-bottom: 0.25rem; }
+        
+        /* Tables */
+        .content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+        .content th {
+            background: #1a365d;
+            color: #fff;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            font-weight: 600;
+        }
+        .content td {
+            padding: 0.5rem 0.8rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .content tr:nth-child(even) { background: #f1f5f9; }
+        .content tr:hover { background: #e2e8f0; }
+        
+        /* Code blocks */
+        .content pre {
+            background: #1e1e2e !important;
+            color: #cdd6f4 !important;
+            border-radius: 8px;
+            padding: 1rem 0 !important;
+            margin: 1rem 0;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            position: relative;
+        }
+        .content code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+        }
+        .content pre code {
+            padding: 0 !important;
+            background: transparent !important;
+        }
+        /* Inline code */
+        .content p code, .content li code {
+            background: #e2e8f0;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+        
+        /* highlight.js line numbers */
+        .hljs-ln-numbers {
+            text-align: right;
+            color: #6c7086 !important;
+            border-right: 1px solid #313244 !important;
+            padding: 0 0.8rem 0 0.5rem !important;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .hljs-ln-code {
+            padding-left: 1rem !important;
+        }
+        
+        /* Blockquotes */
+        .content blockquote {
+            border-left: 4px solid #2d5a87;
+            background: #f1f5f9;
+            padding: 0.75rem 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        /* Footers */
+        .footer {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            color: #6c7086;
+            font-size: 0.85rem;
+        }
+        .footer a { color: #2d5a87; text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+        
+        /* Images */
+        .content img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container { padding: 1rem; }
+            .paper-header { padding: 1.5rem; }
+            .paper-header h1 { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="paper-header">
+            <h1>ResNet Paper Analysis</h1>
+            <div class="subtitle">Optimization & Deep Learning Paper Analysis</div>
+        </div>
+        
+        <div class="nav-bar">
+            <a href="../index.html">Home</a>
+            <span class="sep">/</span>
+            <span>ResNet Paper Analysis</span>
+        </div>
+        
+        <div class="content">
+<h2 id="resnet-paper-overview">ResNet Paper Overview</h2>
+<p><strong>Paper Title</strong>: Deep Residual Learning for Image Recognition</p>
+<p><strong>Authors</strong>: Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun (Microsoft Research)</p>
+<p><strong>Publication</strong>: CVPR 2016 (IEEE Conference on Computer Vision and Pattern Recognition)</p>
+<p><strong>arXiv</strong>: 1512.03385</p>
+<p><strong>Core Contribution</strong>: The paper introduces <strong>Residual Learning</strong> — a framework that reformulates stacked layers as learning <strong>residual functions</strong> with reference to the layer inputs, instead of learning unreferenced functions. This enables training of networks substantially deeper than previously possible (up to 152 layers on ImageNet, and 1000+ layers on CIFAR-10).</p>
+<h2 id="1-core-ideas-and-key-formulas">1. Core Ideas and Key Formulas</h2>
+<h3 id="11-the-degradation-problem">1.1 The Degradation Problem</h3>
+<p>When deeper networks start converging, a <em>degradation problem</em> emerges: with network depth increasing, accuracy gets saturated and then degrades rapidly. This degradation is <strong>not caused by overfitting</strong> — adding more layers leads to <strong>higher training error</strong>.</p>
+<p>Consider a shallower architecture and its deeper counterpart that adds more layers. There exists a solution <em>by construction</em> to the deeper model: the added layers are <strong>identity mapping</strong>, and the other layers are copied from the learned shallower model. The existence of this constructed solution indicates that a deeper model should produce no higher training error than its shallower counterpart. Yet, current solvers are unable to find solutions that are comparably good.</p>
+<h3 id="12-residual-learning-core-formula">1.2 Residual Learning (Core Formula)</h3>
+<p>Let <strong>TEX_BLOCK_5</strong> denote the desired underlying mapping to be fit by a few stacked layers, with <strong>TEX_BLOCK_6</strong> denoting the inputs to the first of these layers. Rather than expect stacked layers to approximate <strong>TEX_BLOCK_7</strong>, we explicitly let these layers approximate a <strong>residual function</strong>:</p>
+<p><strong>TEX_BLOCK_0</strong></p>
+<p>The original mapping is recast into:</p>
+<p><strong>TEX_BLOCK_1</strong></p>
+<p><strong>Hypothesis</strong>: It is easier to optimize the residual mapping than to optimize the original, unreferenced mapping. To the extreme, if an identity mapping were optimal, it would be easier to push the residual to zero than to fit an identity mapping by a stack of nonlinear layers.</p>
+<h3 id="13-building-block-residual-block">1.3 Building Block (Residual Block)</h3>
+<p>Formally, a building block is defined as:</p>
+<p><strong>TEX_BLOCK_2</strong></p>
+<p>where <strong>TEX_BLOCK_8</strong> and <strong>TEX_BLOCK_9</strong> are the input and output vectors of the layers considered. The function <strong>TEX_BLOCK_10</strong> represents the residual mapping to be learned.</p>
+<p>For the example with two layers (Fig. 2 in the paper):</p>
+<p><strong>TEX_BLOCK_3</strong></p>
+<p>where <strong>TEX_BLOCK_11</strong> denotes ReLU and biases are omitted for simplifying notations.</p>
+<h3 id="14-projection-shortcut-dimension-matching">1.4 Projection Shortcut (Dimension Matching)</h3>
+<p>When the dimensions of <strong>TEX_BLOCK_12</strong> and <strong>TEX_BLOCK_13</strong> are not equal (e.g., when changing input/output channels), a linear projection <strong>TEX_BLOCK_14</strong> is performed by the shortcut connections to match the dimensions:</p>
+<p><strong>TEX_BLOCK_4</strong></p>
+<p>The paper shows that identity mapping is sufficient for addressing the degradation problem and is economical; <strong>TEX_BLOCK_15</strong> is only used when matching dimensions.</p>
+<h2 id="2-detailed-explanation-of-mathematical-symbols">2. Detailed Explanation of Mathematical Symbols</h2>
+<h3 id="21-residual-block-formula-tex_block_16">2.1 Residual Block Formula: <strong>TEX_BLOCK_16</strong></h3>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Meaning</th>
+<th>Concrete Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>TEX_BLOCK_17</strong></td>
+<td><strong>Input vector</strong> to the residual block</td>
+<td>In a convolutional network, <strong>TEX_BLOCK_18</strong> could be a feature map of size <strong>TEX_BLOCK_19</strong> (height <strong>TEX_BLOCK_20</strong> width <strong>TEX_BLOCK_21</strong> channels). In a fully-connected network, it could be a 1024-dimensional feature vector</td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_22</strong></td>
+<td><strong>Output vector</strong> after the residual block</td>
+<td>The output has the <strong>same dimensions</strong> as <strong>TEX_BLOCK_23</strong> (due to the identity shortcut). For the example above, <strong>TEX_BLOCK_24</strong> would also be <strong>TEX_BLOCK_25</strong></td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_26</strong></td>
+<td><strong>Residual mapping</strong> to be learned by the stacked layers</td>
+<td>For a two-layer residual block: <strong>TEX_BLOCK_27</strong>. This represents the "residual" — the difference between the desired mapping and the identity</td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_28</strong></td>
+<td><strong>Set of weight matrices</strong> for the layers in the residual function</td>
+<td><strong>TEX_BLOCK_29</strong> and <strong>TEX_BLOCK_30</strong> are the weight matrices. For convolutional layers, these are convolution kernels. Example: <strong>TEX_BLOCK_31</strong> could be a <strong>TEX_BLOCK_32</strong> convolution kernel (3×3 spatial, 64 input channels, 64 output channels)</td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_33</strong></td>
+<td><strong>ReLU activation</strong> (Rectified Linear Unit)</td>
+<td><strong>TEX_BLOCK_34</strong>. Applied after the first convolution (and batch normalization)</td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_35</strong></td>
+<td><strong>Element-wise addition</strong> (shortcut connection)</td>
+<td>The shortcut connection adds the input <strong>TEX_BLOCK_36</strong> directly to the output of <strong>TEX_BLOCK_37</strong>. This is an element-wise operation performed on two feature maps, channel by channel</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong>: Suppose we want to learn a mapping <strong>TEX_BLOCK_38</strong> that transforms a <strong>TEX_BLOCK_39</strong> input image to a <strong>TEX_BLOCK_40</strong> output. Instead of learning this mapping directly, we learn the residual <strong>TEX_BLOCK_41</strong>. If the optimal mapping is identity (<strong>TEX_BLOCK_42</strong>), then the network simply needs to learn <strong>TEX_BLOCK_43</strong> (i.e., drive all weights to zero), which is much easier than learning an identity mapping through multiple nonlinear layers.</p>
+<h3 id="22-residual-function-tex_block_44">2.2 Residual Function: <strong>TEX_BLOCK_44</strong></h3>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Meaning</th>
+<th>Concrete Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>TEX_BLOCK_45</strong></td>
+<td><strong>Weight matrix</strong> for the first layer</td>
+<td>A <strong>TEX_BLOCK_46</strong> matrix for a fully-connected layer, or a <strong>TEX_BLOCK_47</strong> convolution kernel</td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_48</strong></td>
+<td><strong>Weight matrix</strong> for the second layer</td>
+<td>Same dimensions as <strong>TEX_BLOCK_49</strong> for matching input/output dimensions</td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_50</strong></td>
+<td><strong>Activation</strong> after the first linear transformation</td>
+<td>First compute <strong>TEX_BLOCK_51</strong> (linear transformation), then apply ReLU: <strong>TEX_BLOCK_52</strong></td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_53</strong></td>
+<td><strong>Second linear transformation</strong> after activation</td>
+<td>The activated features are passed through another weight matrix <strong>TEX_BLOCK_54</strong> to produce the residual</td>
+</tr>
+</tbody>
+</table>
+<h3 id="23-projection-shortcut-tex_block_55">2.3 Projection Shortcut: <strong>TEX_BLOCK_55</strong></h3>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Meaning</th>
+<th>Concrete Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>TEX_BLOCK_56</strong></td>
+<td><strong>Projection matrix</strong> for the shortcut connection</td>
+<td>Used when the dimensions of <strong>TEX_BLOCK_57</strong> and <strong>TEX_BLOCK_58</strong> differ. For example, when doubling the number of channels from 64 to 128, <strong>TEX_BLOCK_59</strong> could be a <strong>TEX_BLOCK_60</strong> convolution with 128 output channels, or a linear projection matrix of size <strong>TEX_BLOCK_61</strong></td>
+</tr>
+<tr>
+<td><strong>TEX_BLOCK_62</strong></td>
+<td><strong>Projected input</strong></td>
+<td>The input is linearly transformed to match the dimensions of <strong>TEX_BLOCK_63</strong> before addition</td>
+</tr>
+</tbody>
+</table>
+<p>The paper notes that identity shortcuts (without <strong>TEX_BLOCK_64</strong>) add neither extra parameter nor computational complexity. For dimension matching, options include: (A) zero-padding for increasing dimensions (parameter-free), or (B) projection shortcuts using <strong>TEX_BLOCK_65</strong> convolutions.</p>
+<h2 id="3-visualization-code">3. Visualization Code</h2>
+<p>The following Python code visualizes the core concepts of residual learning:</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">matplotlib.patches</span> <span class="kn">import</span> <span class="n">FancyBboxPatch</span><span class="p">,</span> <span class="n">FancyArrowPatch</span>
+<span class="kn">import</span> <span class="nn">matplotlib.patches</span> <span class="k">as</span> <span class="nn">mpatches</span>
+
+<span class="c1"># ============================================================</span>
+<span class="c1"># 1. Residual Learning Concept Visualization</span>
+<span class="c1"># ============================================================</span>
+<span class="k">def</span> <span class="nf">visualize_residual_learning</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Visualize the core idea: learning residual vs. original mapping&quot;&quot;&quot;</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+    <span class="c1"># --- Subplot 1: The desired mapping H(x) ---</span>
+    <span class="n">ax1</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">x_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="c1"># H(x) = some complex non-linear function</span>
+    <span class="n">H_x</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">x_vals</span><span class="o">**</span><span class="mi">3</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">x_vals</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">x_vals</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_vals</span><span class="p">,</span> <span class="n">H_x</span><span class="p">,</span> <span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$\mathcal{H}(\mathbf{x})$ (desired)&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_vals</span><span class="p">,</span> <span class="n">x_vals</span><span class="p">,</span> <span class="s1">&#39;r--&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;Identity $\mathbf{x}$&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="n">x_vals</span><span class="p">,</span> <span class="n">x_vals</span><span class="p">,</span> <span class="n">H_x</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;orange&#39;</span><span class="p">,</span> 
+                     <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;Residual $\mathcal{F}(\mathbf{x}) = \mathcal{H}(\mathbf{x}) - \mathbf{x}$&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$\mathbf{x}$ (input)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Output&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;(a) Desired Mapping $\mathcal{H}(\mathbf{x})$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+
+    <span class="c1"># --- Subplot 2: The residual F(x) = H(x) - x ---</span>
+    <span class="n">ax2</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">residual</span> <span class="o">=</span> <span class="n">H_x</span> <span class="o">-</span> <span class="n">x_vals</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_vals</span><span class="p">,</span> <span class="n">residual</span><span class="p">,</span> <span class="s1">&#39;g-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$\mathcal{F}(\mathbf{x}) = \mathcal{H}(\mathbf{x}) - \mathbf{x}$&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Zero (identity is optimal)&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="n">x_vals</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">residual</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;green&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$\mathbf{x}$ (input)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Residual&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;(b) Residual Mapping $\mathcal{F}(\mathbf{x})$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+
+    <span class="c1"># --- Subplot 3: Why residual is easier to learn ---</span>
+    <span class="n">ax3</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="c1"># If optimal is identity, residual should be zero</span>
+    <span class="c1"># Learning residual to zero is easier than learning identity through nonlinear layers</span>
+    <span class="n">x_vals2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="c1"># A nonlinear layer trying to approximate identity (hard)</span>
+    <span class="n">identity_approx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">x_vals2</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.5</span>  <span class="c1"># Some approximation</span>
+    <span class="c1"># Residual learning: just need to learn zero (easy)</span>
+    <span class="n">residual_zero</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x_vals2</span><span class="p">)</span>
+
+    <span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_vals2</span><span class="p">,</span> <span class="n">x_vals2</span><span class="p">,</span> <span class="s1">&#39;r--&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Identity (target)&#39;</span><span class="p">)</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_vals2</span><span class="p">,</span> <span class="n">identity_approx</span><span class="p">,</span> <span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> 
+             <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Nonlinear layers approximating identity</span><span class="se">\n</span><span class="s1">(needs complex weights)&#39;</span><span class="p">)</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_vals2</span><span class="p">,</span> <span class="n">residual_zero</span><span class="p">,</span> <span class="s1">&#39;g-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> 
+             <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Residual learning: just push to zero</span><span class="se">\n</span><span class="s1">(simply set weights to 0)&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Annotate</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;Hard: need complex</span><span class="se">\n</span><span class="s1">nonlinear mapping&#39;</span><span class="p">,</span> 
+                 <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">1.2</span><span class="p">,</span> <span class="mf">1.3</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.8</span><span class="p">),</span>
+                 <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">),</span>
+                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">)</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;Easy: just set</span><span class="se">\n</span><span class="s1">weights to zero&#39;</span><span class="p">,</span> 
+                 <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">1.2</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">),</span>
+                 <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;green&#39;</span><span class="p">),</span>
+                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;green&#39;</span><span class="p">)</span>
+
+    <span class="n">ax3</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$\mathbf{x}$ (input)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Output&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;(c) Why Residual is Easier to Optimize&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s1">&#39;Residual Learning: Core Idea from He et al. (CVPR 2016)&#39;</span><span class="p">,</span>
+                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="c1"># ============================================================</span>
+<span class="c1"># 2. Residual Block Architecture Visualization</span>
+<span class="c1"># ============================================================</span>
+<span class="k">def</span> <span class="nf">visualize_residual_block</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Visualize the residual block architecture (Fig. 2 from the paper)&quot;&quot;&quot;</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Define box positions</span>
+    <span class="n">x_start</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">x_end</span> <span class="o">=</span> <span class="mf">11.0</span>
+    <span class="n">y_center</span> <span class="o">=</span> <span class="mf">3.0</span>
+
+    <span class="c1"># Input</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_start</span> <span class="o">-</span> <span class="mf">0.3</span><span class="p">,</span> <span class="n">y_center</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\mathbf{x}$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Box 1: Weight Layer 1</span>
+    <span class="n">rect1</span> <span class="o">=</span> <span class="n">FancyBboxPatch</span><span class="p">((</span><span class="n">x_start</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">-</span> <span class="mf">0.8</span><span class="p">),</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">1.6</span><span class="p">,</span> 
+                            <span class="n">boxstyle</span><span class="o">=</span><span class="s2">&quot;round,pad=0.1&quot;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;lightblue&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">rect1</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">y_center</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$W_1$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">-</span> <span class="mf">0.6</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;Weight Layer 1&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;italic&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Arrow: input -&gt; W1</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="n">x_start</span><span class="p">,</span> <span class="n">y_center</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="n">x_start</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">y_center</span><span class="p">),</span>
+                <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.5</span><span class="p">))</span>
+
+    <span class="c1"># ReLU 1</span>
+    <span class="n">rect_relu1</span> <span class="o">=</span> <span class="n">FancyBboxPatch</span><span class="p">((</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">2.5</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">-</span> <span class="mf">0.6</span><span class="p">),</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">,</span>
+                                 <span class="n">boxstyle</span><span class="o">=</span><span class="s2">&quot;round,pad=0.1&quot;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;orange&#39;</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;lightyellow&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">rect_relu1</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">3.25</span><span class="p">,</span> <span class="n">y_center</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\sigma$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">3.25</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;ReLU&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;italic&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Arrow: W1 -&gt; ReLU</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">2.5</span><span class="p">,</span> <span class="n">y_center</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">y_center</span><span class="p">),</span>
+                <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.5</span><span class="p">))</span>
+
+    <span class="c1"># Box 2: Weight Layer 2</span>
+    <span class="n">rect2</span> <span class="o">=</span> <span class="n">FancyBboxPatch</span><span class="p">((</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">4.5</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">-</span> <span class="mf">0.8</span><span class="p">),</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">1.6</span><span class="p">,</span>
+                            <span class="n">boxstyle</span><span class="o">=</span><span class="s2">&quot;round,pad=0.1&quot;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;lightblue&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">rect2</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">5.5</span><span class="p">,</span> <span class="n">y_center</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$W_2$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">5.5</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">-</span> <span class="mf">0.6</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;Weight Layer 2&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;italic&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Arrow: ReLU -&gt; W2</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">4.5</span><span class="p">,</span> <span class="n">y_center</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">4.0</span><span class="p">,</span> <span class="n">y_center</span><span class="p">),</span>
+                <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.5</span><span class="p">))</span>
+
+    <span class="c1"># ReLU 2 (after addition)</span>
+    <span class="n">rect_relu2</span> <span class="o">=</span> <span class="n">FancyBboxPatch</span><span class="p">((</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">8.5</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">-</span> <span class="mf">0.6</span><span class="p">),</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">,</span>
+                                 <span class="n">boxstyle</span><span class="o">=</span><span class="s2">&quot;round,pad=0.1&quot;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;orange&#39;</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;lightyellow&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">rect_relu2</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">9.25</span><span class="p">,</span> <span class="n">y_center</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\sigma$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">9.25</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;ReLU&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;italic&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Arrow: W2 -&gt; ReLU2</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">8.5</span><span class="p">,</span> <span class="n">y_center</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">6.5</span><span class="p">,</span> <span class="n">y_center</span><span class="p">),</span>
+                <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.5</span><span class="p">))</span>
+
+    <span class="c1"># Output</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_end</span> <span class="o">+</span> <span class="mf">0.3</span><span class="p">,</span> <span class="n">y_center</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\mathbf{y}$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="n">x_end</span><span class="p">,</span> <span class="n">y_center</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">10.0</span><span class="p">,</span> <span class="n">y_center</span><span class="p">),</span>
+                <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.5</span><span class="p">))</span>
+
+    <span class="c1"># Shortcut connection (identity mapping) - with a curve</span>
+    <span class="c1"># Draw a curved arrow from input to addition point</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">7.0</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">+</span> <span class="mf">0.2</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="n">x_start</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">+</span> <span class="mf">0.2</span><span class="p">),</span>
+                <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span>
+                                <span class="n">connectionstyle</span><span class="o">=</span><span class="s1">&#39;arc3,rad=0.2&#39;</span><span class="p">))</span>
+
+    <span class="c1"># Label the shortcut</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">3.0</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;Identity Shortcut&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> 
+            <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">3.0</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">+</span> <span class="mf">0.6</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\mathbf{x}$ (skips layers)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> 
+            <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;italic&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Addition symbol</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">7.0</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\oplus$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> 
+            <span class="n">bbox</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">boxstyle</span><span class="o">=</span><span class="s1">&#39;circle&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">))</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_start</span> <span class="o">+</span> <span class="mf">7.0</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">-</span> <span class="mf">1.5</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;Element-wise Addition&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;italic&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Title</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mf">5.5</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;Residual Block: $\mathbf{y} = \mathcal{F}(\mathbf{x}, \{W_i\}) + \mathbf{x}$&#39;</span><span class="p">,</span>
+            <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;where $\mathcal{F} = W_2 \sigma(W_1 \mathbf{x})$ (for two layers)&#39;</span><span class="p">,</span>
+            <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;italic&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Legend</span>
+    <span class="n">legend_elements</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">mpatches</span><span class="o">.</span><span class="n">Patch</span><span class="p">(</span><span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;lightblue&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Weighted Layers&#39;</span><span class="p">),</span>
+        <span class="n">mpatches</span><span class="o">.</span><span class="n">Patch</span><span class="p">(</span><span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;lightyellow&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;orange&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;ReLU Activation&#39;</span><span class="p">),</span>
+        <span class="n">mpatches</span><span class="o">.</span><span class="n">Patch</span><span class="p">(</span><span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Identity Shortcut (skip connection)&#39;</span><span class="p">),</span>
+        <span class="n">mpatches</span><span class="o">.</span><span class="n">Patch</span><span class="p">(</span><span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Element-wise Addition&#39;</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="n">legend_elements</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;lower left&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="c1"># ============================================================</span>
+<span class="c1"># 3. Degradation Problem Visualization</span>
+<span class="c1"># ============================================================</span>
+<span class="k">def</span> <span class="nf">visualize_degradation_problem</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Visualize the degradation problem: deeper networks have higher training error&quot;&quot;&quot;</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+
+    <span class="c1"># Simulate training error curves</span>
+    <span class="n">epochs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span>
+
+    <span class="c1"># 20-layer plain network (shallower, better training)</span>
+    <span class="n">train_error_20</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">epochs</span> <span class="o">/</span> <span class="mi">25</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.05</span>
+    <span class="c1"># 56-layer plain network (deeper, worse training - degradation!)</span>
+    <span class="n">train_error_56</span> <span class="o">=</span> <span class="mf">0.6</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">epochs</span> <span class="o">/</span> <span class="mi">35</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.18</span>
+
+    <span class="c1"># Add some noise for realism</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+    <span class="n">train_error_20</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">epochs</span><span class="p">))</span>
+    <span class="n">train_error_56</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">epochs</span><span class="p">))</span>
+    <span class="n">train_error_20</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">train_error_20</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+    <span class="n">train_error_56</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">train_error_56</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">epochs</span><span class="p">,</span> <span class="n">train_error_20</span><span class="p">,</span> <span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;20-layer plain network&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">epochs</span><span class="p">,</span> <span class="n">train_error_56</span><span class="p">,</span> <span class="s1">&#39;r-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;56-layer plain network&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Annotate the degradation</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;Degradation!</span><span class="se">\n</span><span class="s1">Deeper network has</span><span class="se">\n</span><span class="s1">higher training error&#39;</span><span class="p">,</span>
+                <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="n">train_error_56</span><span class="p">[</span><span class="mi">59</span><span class="p">]),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mi">40</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">),</span>
+                <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;Shallower network</span><span class="se">\n</span><span class="s1">converges better&#39;</span><span class="p">,</span>
+                <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="n">train_error_20</span><span class="p">[</span><span class="mi">59</span><span class="p">]),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mi">75</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">),</span>
+                <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Training Iterations (epochs)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Training Error&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;The Degradation Problem: Deeper Networks are Harder to Optimize&#39;</span><span class="p">,</span>
+                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+
+    <span class="c1"># Add text box explaining</span>
+    <span class="n">props</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">boxstyle</span><span class="o">=</span><span class="s1">&#39;round&#39;</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;wheat&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">,</span> 
+            <span class="s1">&#39;Not overfitting! Training error increases</span><span class="se">\n</span><span class="s1">with more layers, despite more capacity&#39;</span><span class="p">,</span>
+            <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="n">props</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="c1"># ============================================================</span>
+<span class="c1"># 4. Residual vs. Plain Network Performance</span>
+<span class="c1"># ============================================================</span>
+<span class="k">def</span> <span class="nf">visualize_residual_vs_plain</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compare plain vs residual network performance&quot;&quot;&quot;</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+    <span class="n">epochs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+
+    <span class="c1"># --- Training Error ---</span>
+    <span class="n">ax1</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Plain 56-layer (degrades)</span>
+    <span class="n">plain_train</span> <span class="o">=</span> <span class="mf">0.55</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">epochs</span> <span class="o">/</span> <span class="mi">30</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.15</span>
+    <span class="n">plain_train</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.008</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">epochs</span><span class="p">))</span>
+    <span class="n">plain_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">plain_train</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+
+    <span class="c1"># Residual 56-layer (learns well)</span>
+    <span class="n">res_train</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">epochs</span> <span class="o">/</span> <span class="mi">20</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.02</span>
+    <span class="n">res_train</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.005</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">epochs</span><span class="p">))</span>
+    <span class="n">res_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">res_train</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">epochs</span><span class="p">,</span> <span class="n">plain_train</span><span class="p">,</span> <span class="s1">&#39;r-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Plain-56 (degradation)&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">epochs</span><span class="p">,</span> <span class="n">res_train</span><span class="p">,</span> <span class="s1">&#39;g-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;ResNet-56 (residual)&#39;</span><span class="p">)</span>
+
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Training Iterations (epochs)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Training Error&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Training Error: Plain vs. Residual&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+
+    <span class="c1"># --- Test Error ---</span>
+    <span class="n">ax2</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Plain 56-layer</span>
+    <span class="n">plain_test</span> <span class="o">=</span> <span class="mf">0.6</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">epochs</span> <span class="o">/</span> <span class="mi">35</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.22</span>
+    <span class="n">plain_test</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">epochs</span><span class="p">))</span>
+    <span class="n">plain_test</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">plain_test</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+
+    <span class="c1"># Residual 56-layer</span>
+    <span class="n">res_test</span> <span class="o">=</span> <span class="mf">0.55</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">epochs</span> <span class="o">/</span> <span class="mi">25</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.05</span>
+    <span class="n">res_test</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.006</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">epochs</span><span class="p">))</span>
+    <span class="n">res_test</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">res_test</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+
+    <span class="c1"># Residual 152-layer (even deeper, still better!)</span>
+    <span class="n">res152_test</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">epochs</span> <span class="o">/</span> <span class="mi">22</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.03</span>
+    <span class="n">res152_test</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.005</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">epochs</span><span class="p">))</span>
+    <span class="n">res152_test</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">res152_test</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+
+    <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">epochs</span><span class="p">,</span> <span class="n">plain_test</span><span class="p">,</span> <span class="s1">&#39;r-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Plain-56&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">epochs</span><span class="p">,</span> <span class="n">res_test</span><span class="p">,</span> <span class="s1">&#39;g-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;ResNet-56&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">epochs</span><span class="p">,</span> <span class="n">res152_test</span><span class="p">,</span> <span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;ResNet-152 (even deeper!)&#39;</span><span class="p">)</span>
+
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Training Iterations (epochs)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Test Error&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Test Error: Deeper Residual Nets Perform Better&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+
+    <span class="c1"># Add annotation for residual advantage</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s1">&#39;Residual learning enables</span><span class="se">\n</span><span class="s1">extremely deep networks&#39;</span><span class="p">,</span>
+                 <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">80</span><span class="p">,</span> <span class="n">res152_test</span><span class="p">[</span><span class="mi">79</span><span class="p">]),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="mf">0.35</span><span class="p">),</span>
+                 <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s1">&#39;Residual Networks vs. Plain Networks (He et al., CVPR 2016)&#39;</span><span class="p">,</span>
+                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="c1"># ============================================================</span>
+<span class="c1"># Execute visualizations</span>
+<span class="c1"># ============================================================</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Deep Residual Learning for Image Recognition&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;He, Zhang, Ren, Sun (Microsoft Research)&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CVPR 2016 | arXiv:1512.03385&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Visualizing Core Concepts...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 1. Residual learning concept</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;1. Residual Learning Concept...&quot;</span><span class="p">)</span>
+    <span class="n">visualize_residual_learning</span><span class="p">()</span>
+
+    <span class="c1"># 2. Residual block architecture</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;2. Residual Block Architecture...&quot;</span><span class="p">)</span>
+    <span class="n">visualize_residual_block</span><span class="p">()</span>
+
+    <span class="c1"># 3. Degradation problem</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;3. Degradation Problem...&quot;</span><span class="p">)</span>
+    <span class="n">visualize_degradation_problem</span><span class="p">()</span>
+
+    <span class="c1"># 4. Plain vs Residual comparison</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;4. Plain vs Residual Performance...&quot;</span><span class="p">)</span>
+    <span class="n">visualize_residual_vs_plain</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Key Takeaways:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;1. Residual learning reformulates layers to learn F(x) = H(x) - x&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;2. This makes optimization easier, especially for very deep networks&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;3. ResNet-152 achieved 3.57% top-5 error on ImageNet (ILSVRC 2015 winner)&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;4. Residual networks can have 100+ layers without degradation&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+</code></pre></div>
+
+<h3 id="code-output-interpretation">Code Output Interpretation</h3>
+<table>
+<thead>
+<tr>
+<th>Visualization</th>
+<th>Content</th>
+<th>Key Insight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Residual Learning Concept</strong></td>
+<td>Shows <strong>TEX_BLOCK_85</strong> vs. <strong>TEX_BLOCK_86</strong></td>
+<td>Learning the residual is easier than learning the original mapping</td>
+</tr>
+<tr>
+<td><strong>Residual Block Architecture</strong></td>
+<td>Diagram of the building block (Fig. 2 from paper)</td>
+<td><strong>TEX_BLOCK_87</strong> with identity shortcut</td>
+</tr>
+<tr>
+<td><strong>Degradation Problem</strong></td>
+<td>Simulated training error of 20-layer vs 56-layer plain networks</td>
+<td>Deeper networks have higher training error (not overfitting!)</td>
+</tr>
+<tr>
+<td><strong>Plain vs Residual Performance</strong></td>
+<td>Training and test error comparison</td>
+<td>Residual networks (56, 152 layers) outperform plain networks</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4-academic-sources">4. Academic Sources</h2>
+<ul>
+<li><strong>Original Paper</strong>: He, K., Zhang, X., Ren, S., &amp; Sun, J. (2016). Deep Residual Learning for Image Recognition. <em>IEEE Conference on Computer Vision and Pattern Recognition (CVPR)</em>, 770-778</li>
+<li><strong>arXiv Preprint</strong>: https://arxiv.org/abs/1512.03385</li>
+<li><strong>Microsoft Research</strong>: Authors were from Microsoft Research at the time of publication</li>
+<li><strong>ILSVRC 2015</strong>: The ResNet ensemble achieved <strong>3.57% top-5 error</strong> on the ImageNet test set, winning 1st place in classification, detection, localization, and COCO detection/segmentation</li>
+</ul>
+<h3 id="core-contributions-summary">Core Contributions Summary</h3>
+<ol>
+<li><strong>Residual Learning</strong>: Reformulate layers to learn residual functions <strong>TEX_BLOCK_88</strong> instead of unreferenced mappings</li>
+<li><strong>Identity Shortcuts</strong>: Shortcut connections perform identity mapping with no extra parameters or computational cost</li>
+<li><strong>Degradation Problem Solved</strong>: Residual networks can gain accuracy from considerably increased depth, with successful training up to <strong>152 layers</strong> on ImageNet and <strong>1000+ layers</strong> on CIFAR-10</li>
+<li><strong>State-of-the-Art Results</strong>: 3.57% top-5 error on ImageNet; 28% relative improvement on COCO object detection</li>
+</ol>
+        </div>
+        
+        <div class="footer">
+            <a href="../index.html">Back to Home</a> &middot;
+            <a href="https://github.com/zmath01/optimization-visualization">GitHub</a>
+        </div>
+    </div>
+</body>
+</html>
