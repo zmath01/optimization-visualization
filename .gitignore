@@ -28,4 +28,3 @@ venv/
 .venv/
 
 # Video (large files) — include specific ones with !gitignore
-*.mp4
