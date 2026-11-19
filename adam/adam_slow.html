@@ -217,25 +217,25 @@
         <div class="title">⚙️ Hyperparameters</div>
 
         <div class="control-group">
-            <label>Learning Rate (η) <span class="val" id="lrVal">0.12</span></label>
+            <label for="lrSlider">Learning Rate (η) <span class="val" id="lrVal">0.12</span></label>
             <input type="range" id="lrSlider" min="0.001" max="0.5" step="0.001" value="0.12" />
             <div class="hint"><strong>Step size.</strong> Too high → divergence. Too low → slow convergence.</div>
         </div>
 
         <div class="control-group">
-            <label>Beta 1 (β₁) <span class="val" id="b1Val">0.900</span></label>
+            <label for="b1Slider">Beta 1 (β₁) <span class="val" id="b1Val">0.900</span></label>
             <input type="range" id="b1Slider" min="0.5" max="0.999" step="0.001" value="0.9" />
             <div class="hint"><strong>Momentum decay.</strong> Controls the exponential moving average of the gradient. Default 0.9.</div>
         </div>
 
         <div class="control-group">
-            <label>Beta 2 (β₂) <span class="val" id="b2Val">0.999</span></label>
+            <label for="b2Slider">Beta 2 (β₂) <span class="val" id="b2Val">0.999</span></label>
             <input type="range" id="b2Slider" min="0.9" max="0.9999" step="0.0001" value="0.999" />
             <div class="hint"><strong>Adaptive scale decay.</strong> Controls the moving average of squared gradients. Default 0.999.</div>
         </div>
 
         <div class="control-group">
-            <label>Animation Speed <span class="val" id="speedVal">200 ms</span></label>
+            <label for="speedSlider">Animation Speed <span class="val" id="speedVal">200 ms</span></label>
             <input type="range" id="speedSlider" min="50" max="800" step="10" value="200" />
             <div class="hint"><strong>Step interval.</strong> Higher = slower, easier to observe.</div>
         </div>
@@ -246,7 +246,7 @@
     <div id="legend">
         <span class="item"><span class="dot traj"></span> Trajectory</span>
         <span class="item"><span class="dot momentum"></span> Momentum (1st moment m)</span>
-        <span class="item"><span class="dot scale"></span> Adaptive scale (√v)</span>
+        <span class="item"><span class="dot scale"></span> Magnitude of √v along gradient</span>
         <span class="item"><span class="dot grad"></span> Gradient ∇f</span>
     </div>
 
@@ -266,6 +266,7 @@
         }
     </script>
 
+    <script src="./adam-core.js"></script>
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -273,13 +274,7 @@
 
         // ======================== CORE MATH ========================
         // Loss: f(x,y) = 0.5*(x²+y²) + 0.3*sin(3x)*cos(3y) + 0.2*(x+y)
-        function loss(x, y) {
-            return 0.5 * (x * x + y * y) + 0.3 * Math.sin(3 * x) * Math.cos(3 * y) + 0.2 * (x + y);
-        }
-        function grad(x, y) {
-            return [x - 0.9 * Math.sin(3 * x) * Math.cos(3 * y) + 0.2,
-                    y + 0.9 * Math.cos(3 * x) * Math.sin(3 * y) + 0.2];
-        }
+        const {loss} = adamCore;
 
         // ======================== THREE.JS SETUP ========================
         const scene = new THREE.Scene();
@@ -477,39 +472,19 @@
 
         // ======================== SIMULATION ENGINE ========================
         function runSimulation(lr, beta1, beta2, steps = 60) {
-            const eps = 1e-8;
-            let th = new THREE.Vector3(2.2, 0, -1.8);
-            th.y = loss(th.x, th.z);
-            let mm = new THREE.Vector3(0, 0, 0);
-            let vv = new THREE.Vector3(0, 0, 0);
-            let tt = 0;
+            const optimizer = {theta: [2.2, -1.8], m: [0, 0], v: [0, 0], t: 0};
             const states = [];
-
+            const options = {alpha: lr, beta1, beta2};
+            const point = ([x, z]) => new THREE.Vector3(x, loss(x, z), z);
             for (let i = 0; i < steps; i++) {
-                const [gx, gz] = grad(th.x, th.z);
-                const g = new THREE.Vector3(gx, 0, gz);
-                tt += 1;
-
-                mm.x = beta1 * mm.x + (1 - beta1) * g.x;
-                mm.z = beta1 * mm.z + (1 - beta1) * g.z;
-                vv.x = beta2 * vv.x + (1 - beta2) * g.x * g.x;
-                vv.z = beta2 * vv.z + (1 - beta2) * g.z * g.z;
-
-                const mHatX = mm.x / (1 - Math.pow(beta1, tt));
-                const mHatZ = mm.z / (1 - Math.pow(beta1, tt));
-                const vHatX = vv.x / (1 - Math.pow(beta2, tt));
-                const vHatZ = vv.z / (1 - Math.pow(beta2, tt));
-
-                th.x -= lr * mHatX / (Math.sqrt(vHatX) + eps);
-                th.z -= lr * mHatZ / (Math.sqrt(vHatZ) + eps);
-                th.y = loss(th.x, th.z);
-
+                const {origin, grad} = adamCore.step(optimizer, options);
                 states.push({
-                    theta: th.clone(),
-                    m: mm.clone(),
-                    v: vv.clone(),
-                    g: g.clone(),
-                    step: tt
+                    theta: point(optimizer.theta),
+                    origin: point(origin),
+                    m: new THREE.Vector3(optimizer.m[0], 0, optimizer.m[1]),
+                    v: new THREE.Vector3(optimizer.v[0], 0, optimizer.v[1]),
+                    g: new THREE.Vector3(grad[0], 0, grad[1]),
+                    step: optimizer.t
                 });
             }
             return states;
@@ -522,7 +497,7 @@
 
             lrVal.textContent = lr.toFixed(3);
             b1Val.textContent = beta1.toFixed(3);
-            b2Val.textContent = beta2.toFixed(3);
+            b2Val.textContent = beta2.toFixed(4);
             lrDisplay.textContent = lr.toFixed(3);
 
             allStates = runSimulation(lr, beta1, beta2, 60);
@@ -540,11 +515,7 @@
             // Update trail
             const posAttr = trailLine.geometry.attributes.position;
             const array = posAttr.array;
-            for (let i = 0; i < MAX_TRAIL; i++) {
-                array[i * 3] = 0;
-                array[i * 3 + 1] = -999;
-                array[i * 3 + 2] = 0;
-            }
+            array.set([theta.x, theta.y + 0.02, theta.z]);
             posAttr.needsUpdate = true;
             trailLine.geometry.setDrawRange(0, 1);
 
@@ -588,10 +559,9 @@
             sphere.position.y += 0.02;
             glow.position.copy(sphere.position);
 
-            // Gradient for arrows
-            const [gx, gz] = grad(theta.x, theta.z);
-            const g = new THREE.Vector3(gx, 0, gz);
-            const origin = theta.clone();
+            // The gradient and moments belong to the start of this step
+            const g = state.g;
+            const origin = state.origin.clone();
             origin.y += 0.15;
 
             // Momentum (m)

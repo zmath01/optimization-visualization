@@ -39,8 +39,8 @@ def plot_path_length_distribution(n_layers=110, ax=None):
 def plot_gradient_contribution(n_layers=110, ax=None):
     """
     Simulate the gradient contribution distribution.
-    The paper finds that most gradients come from paths of length 10–34.
-    This uses a truncated normal distribution to simulate that phenomenon.
+    Use a truncated normal as an illustration of the short-path effect
+    reported by Veit et al. (NeurIPS 2016).
     """
     if ax is None:
         fig, ax = plt.subplots(figsize=(10, 6))
@@ -67,9 +67,11 @@ def plot_gradient_contribution(n_layers=110, ax=None):
     ax.axvline(34, color='green', linestyle='--', alpha=0.7)
     
     # Annotate: "most gradients come from short paths"
-    ax.annotate('~95% gradients come from\n10–34 layer paths',
-                xy=(22, grad_contrib[22] * 0.6),
-                xytext=(50, grad_contrib[50] * 0.8),
+    in_range = grad_contrib[(10 <= k) & (k <= 34)].sum()
+    peak = int(np.argmax(grad_contrib))
+    ax.annotate(f'{in_range:.0%} of simulated mass\nin paths of length 10–34',
+                xy=(peak, grad_contrib[peak] * 0.6),
+                xytext=(n_layers * 0.45, grad_contrib[peak] * 0.8),
                 arrowprops=dict(arrowstyle='->', color='darkred'),
                 fontsize=11, color='darkred')
     

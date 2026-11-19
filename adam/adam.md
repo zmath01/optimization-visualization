@@ -31,7 +31,7 @@ $$
 $$
 
 $$
-\mathbf{x}^{(k+1)} = \mathbf{x}^{(k)} - \eta \frac{\hat{\mathbf{m}}^{(k+1)}}{\sqrt{\hat{\mathbf{v}}^{(k+1)} + \varepsilon}} \tag{5}
+\mathbf{x}^{(k+1)} = \mathbf{x}^{(k)} - \eta \frac{\hat{\mathbf{m}}^{(k+1)}}{\sqrt{\hat{\mathbf{v}}^{(k+1)}} + \varepsilon} \tag{5}
 $$
 
 ---
@@ -114,7 +114,6 @@ This resembles adaptive control in physics where **high kinetic energy triggers 
 ```python
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 
 # ============ Define the objective function ============
 def f(x, y):
@@ -123,8 +122,8 @@ def f(x, y):
 
 def grad_f(x, y):
     """Gradient (analytical solution)"""
-    dx = x - 0.9 * np.sin(3*x) * np.cos(3*y) + 0.2
-    dy = y + 0.9 * np.cos(3*x) * np.sin(3*y) + 0.2
+    dx = x + 0.9 * np.cos(3*x) * np.cos(3*y) + 0.2
+    dy = y - 0.9 * np.sin(3*x) * np.sin(3*y) + 0.2
     return np.array([dx, dy])
 
 # ============ Adam Optimizer ============
@@ -238,13 +237,14 @@ ax5.legend(); ax5.grid(alpha=0.3)
 
 # 6. Adaptive learning rate
 ax6 = axes[1, 2]
-adaptive_lr_x = optimizer.lr / (np.sqrt(v_history[:, 0]) + optimizer.eps)
-adaptive_lr_y = optimizer.lr / (np.sqrt(v_history[:, 1]) + optimizer.eps)
+v_hat_history = v_history / (1 - optimizer.beta2 ** steps[:, None])
+adaptive_lr_x = optimizer.lr / (np.sqrt(v_hat_history[:, 0]) + optimizer.eps)
+adaptive_lr_y = optimizer.lr / (np.sqrt(v_hat_history[:, 1]) + optimizer.eps)
 ax6.plot(steps, adaptive_lr_x, 'b-', label='Effective LR (x-direction)')
 ax6.plot(steps, adaptive_lr_y, 'orange', label='Effective LR (y-direction)')
 ax6.axhline(y=optimizer.lr, color='gray', linestyle='--', alpha=0.5, label='Original LR')
 ax6.set_xlabel('Iteration step'); ax6.set_ylabel('Effective learning rate')
-ax6.set_title('(f) Adaptive Learning Rate ($\\eta / \\sqrt{v}$)')
+ax6.set_title(r'(f) Adaptive Learning Rate ($\eta / (\sqrt{\hat v} + \varepsilon)$)')
 ax6.legend(); ax6.grid(alpha=0.3)
 
 plt.suptitle('Adam Optimization Visualization: First Moment (Momentum) and Second Moment (Adaptive Scale)', fontsize=14, fontweight='bold')
@@ -263,7 +263,7 @@ Running the above code generates a 2×3 grid of subplots:
 | (c) Second moment | Adaptive scale $v_x, v_y$ over iterations | When gradients are large, $v$ increases, automatically applying "brakes" |
 | (d) Gradient vs first moment | Raw gradient vs smoothed momentum | The first moment filters out gradient noise, providing more stability |
 | (e) Gradient squared vs second moment | Raw gradient squared vs smoothed second moment | The second moment provides a stable estimate of gradient magnitude trends |
-| (f) Adaptive learning rate | $\eta/\sqrt{v}$ over iterations | Different directions have different effective learning rates |
+| (f) Adaptive learning rate | $\eta/(\sqrt{\hat v}+\varepsilon)$ over iterations | Different directions have different effective learning rates |
 
 ---
 
