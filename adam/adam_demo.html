@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adam Optimizer · Interactive Demo</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0e141f;
+    --panel: #151e2d;
+    --plot: #101722;
+    --line: #304158;
+    --text: #edf2fa;
+    --muted: #a9b8cd;
+    --accent: #a5e4dd;
+    --path: #ffcf79;
+    --gradient: #ff9798;
+    --moment: #8fc4ff;
+    --update: #a5e4dd;
+    font: 1rem/1.5 system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); }
+  main { max-width: 76rem; margin: auto; padding: 1.25rem clamp(.75rem, 3vw, 2.25rem) 2rem; }
+  nav { display: flex; flex-wrap: wrap; gap: .3rem 1.25rem; font-size: .9rem; }
+  a { color: var(--accent); text-underline-offset: .18em; }
+  h1 { margin: .65rem 0 .12rem; font-size: clamp(1.65rem, 4vw, 2.55rem); line-height: 1.2; }
+  header p { color: var(--muted); margin: 0 0 1.15rem; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: .85rem; align-items: start; }
+  .visualization, details { min-width: 0; border: 1px solid var(--line); border-radius: .85rem; background: var(--panel); }
+  .readout {
+    display: flex; flex-wrap: wrap; gap: .35rem clamp(.8rem, 3vw, 1.65rem);
+    margin: 0; padding: .65rem .85rem; font-size: .9rem;
+  }
+  .readout div { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .4rem; }
+  dt { color: var(--muted); }
+  dd { margin: 0; font-variant-numeric: tabular-nums; }
+  #plot {
+    display: grid; place-items: center; background: var(--plot);
+    height: 20rem; height: clamp(11.5rem, 43dvh, 23rem); border-block: 1px solid var(--line);
+  }
+  #plot canvas { display: block; width: 100%; height: 100%; }
+  #plot p { margin: 1rem; text-align: center; color: var(--muted); }
+  #plot-message[hidden] { display: none; }
+  .legend {
+    display: flex; flex-wrap: wrap; list-style: none;
+    gap: .25rem .95rem; margin: 0; padding: .65rem .85rem; font-size: .8rem;
+  }
+  .legend li { display: inline-flex; align-items: center; gap: .35rem; }
+  .legend li::before { content: ""; width: .7rem; height: .18rem; border-radius: 1rem; background: var(--swatch); }
+  .trail { --swatch: var(--path); }
+  .gradient { --swatch: var(--gradient); }
+  .moment { --swatch: var(--moment); }
+  .update { --swatch: var(--update); }
+  .plot-hint { margin: 0; padding: 0 .85rem .55rem; color: var(--muted); font-size: .78rem; }
+  .toolbar { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; padding: 0 .85rem .75rem; }
+  button {
+    min-height: 2.75rem; border: 1px solid var(--line); border-radius: .5rem;
+    background: #223149; color: var(--text); font: inherit; font-weight: 600; cursor: pointer;
+  }
+  button:hover:not(:disabled) { background: #2e4260; }
+  #play { background: var(--accent); color: #142724; border-color: transparent; }
+  #play:hover { background: #c3f1ec; }
+  button:disabled { cursor: default; opacity: .55; }
+  aside { display: grid; min-width: 0; gap: .75rem; }
+  summary { padding: .68rem .85rem; font-weight: 650; cursor: pointer; }
+  summary:hover { background: #1b293d; border-radius: .85rem; }
+  details[open] summary { border-bottom: 1px solid var(--line); }
+  :is(a, button, input, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .settings { padding: .65rem .85rem .85rem; }
+  .setting { display: grid; grid-template-columns: 1fr auto; gap: 0 .45rem; margin-bottom: .45rem; }
+  .setting label { color: var(--text); font-size: .9rem; }
+  .setting output { color: var(--accent); font: .85rem/1.5 ui-monospace, monospace; }
+  input[type="range"] { grid-column: 1 / -1; width: 100%; height: 2rem; margin: 0; accent-color: var(--accent); }
+  .hint { margin: .25rem 0 0; color: var(--muted); font-size: .8rem; }
+  .step-values { display: grid; gap: .55rem; margin: 0; padding: .75rem .85rem .9rem; font-size: .85rem; }
+  .step-values dd { overflow-wrap: anywhere; font: .78rem/1.6 ui-monospace, monospace; }
+  @media (min-width: 52rem) {
+    .layout { grid-template-columns: minmax(0, 1fr) minmax(16rem, 19rem); }
+    #plot { height: 28rem; height: clamp(21rem, 56dvh, 34rem); }
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.min.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/"
+  }
+}
+</script>
+<script defer src="./adam-core.js"></script>
+<script type="module" src="./adam-demo.js"></script>
+</head>
+<body>
+<main>
+  <header>
+    <nav aria-label="Project"><a href="../">All visualizations</a><a href="./adam.html">Read the Adam analysis</a></nav>
+    <h1>Adam optimizer</h1>
+    <p>Follow Adam’s trajectory across a two-parameter loss surface.</p>
+  </header>
+
+  <div class="layout">
+    <section class="visualization" aria-label="Adam simulation">
+      <dl class="readout">
+        <div><dt>Iteration</dt><dd id="iteration">0 / 60</dd></div>
+        <div><dt>Loss</dt><dd id="loss">—</dd></div>
+        <div><dt>Parameters θ</dt><dd id="theta">—</dd></div>
+      </dl>
+      <div id="plot">
+        <p id="plot-message" role="status">Loading the 3D loss surface…</p>
+        <noscript><p>Enable JavaScript to run the simulation.</p></noscript>
+      </div>
+      <div id="plot-guide">
+        <ul class="legend" aria-label="Plot legend">
+          <li class="trail">Trajectory</li>
+          <li class="gradient">Gradient</li>
+          <li class="moment">Corrected momentum</li>
+          <li class="update">Adam update</li>
+        </ul>
+        <p class="plot-hint">Drag to rotate. Gradient and momentum arrows are scaled for display.</p>
+      </div>
+      <div class="toolbar" role="group" aria-label="Playback controls">
+        <button id="play" type="button">Play</button>
+        <button id="step" type="button">Step</button>
+        <button id="reset" type="button">Reset</button>
+      </div>
+    </section>
+
+    <aside aria-label="Simulation settings and details">
+      <details id="parameters">
+        <summary>Parameters and speed</summary>
+        <div class="settings">
+          <div class="setting">
+            <label for="alpha">Learning rate (α)</label><output id="alpha-value" for="alpha">0.120</output>
+            <input id="alpha" type="range" min="0.001" max="0.5" step="0.001" value="0.12">
+          </div>
+          <div class="setting">
+            <label for="beta1">Momentum decay (β₁)</label><output id="beta1-value" for="beta1">0.900</output>
+            <input id="beta1" type="range" min="0.5" max="0.999" step="0.001" value="0.9">
+          </div>
+          <div class="setting">
+            <label for="beta2">Second moment decay (β₂)</label><output id="beta2-value" for="beta2">0.9990</output>
+            <input id="beta2" type="range" min="0.9" max="0.9999" step="0.0001" value="0.999">
+          </div>
+          <div class="setting">
+            <label for="interval">Time per step</label><output id="interval-value" for="interval">200 ms</output>
+            <input id="interval" type="range" min="50" max="1000" step="10" value="200">
+          </div>
+          <p class="hint">Changing α or β starts a fresh run. Speed can change during playback.</p>
+        </div>
+      </details>
+
+      <details id="step-details">
+        <summary>Step details</summary>
+        <dl class="step-values">
+          <div><dt>Gradient at previous θ</dt><dd id="gradient">—</dd></div>
+          <div><dt>Bias-corrected first moment</dt><dd id="first-moment">—</dd></div>
+          <div><dt>Bias-corrected second moment</dt><dd id="second-moment">—</dd></div>
+          <div><dt>Update Δθ</dt><dd id="delta">—</dd></div>
+        </dl>
+      </details>
+    </aside>
+  </div>
+</main>
+</body>
+</html>

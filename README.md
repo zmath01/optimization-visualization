@@ -15,8 +15,7 @@ Interactive visualizations and paper analyses of optimization algorithms and dee
 
 ## Interactive Demos
 
-- [Adam Slow Motion Comparison](./adam/adam_slow.html) - Step-by-step Adam optimization visualization
-- [Adam Integration](./adam/adam_integrate.html) - Interactive Adam parameter integration
+- [Adam Optimizer Demo](./adam/adam_demo.html) — Explore the 3D loss surface with adjustable parameters, playback and single-step controls.
 
 ## Render the Manim videos
 
@@ -51,7 +50,7 @@ python build_site.py
 python -m http.server --directory site 8000
 ```
 
-Then open http://localhost:8000/. The Adam demos use Three.js from a CDN and the paper pages use MathJax from a CDN.
+Then open http://localhost:8000/. The Adam demo uses Three.js from a CDN and the paper pages use MathJax from a CDN.
 
 ## License
 

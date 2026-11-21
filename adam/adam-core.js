@@ -1,4 +1,4 @@
-/* Shared objective and Adam update for both interactive demos. */
+/* Objective, gradient, and Adam update for the interactive demo. */
 (function (root) {
     'use strict';
 
