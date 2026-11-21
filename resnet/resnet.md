@@ -44,7 +44,7 @@ $$
 \tag{1}
 $$
 
-where $\mathbf{x}$ and $\mathbf{y}$ are the input and output vectors of the layers considered. The function $\mathcal{F}(\mathbf{x}, \{W_i\})$ represents the residual mapping to be learned.
+Here $\mathbf{x}$ is the block input and $\mathbf{y}$ is the sum of the shortcut and the learned residual $\mathcal{F}(\mathbf{x}, \{W_i\})$. Figure 2 applies ReLU to $\mathbf{y}$ after the addition.
 
 For the example with two layers (Fig. 2 in the paper):
 
@@ -73,7 +73,7 @@ The paper shows that identity mapping is sufficient for addressing the degradati
 | Symbol | Meaning | Concrete Example |
 |------|------|----------|
 | $\mathbf{x}$ | **Input vector** to the residual block | In a convolutional network, $\mathbf{x}$ could be a feature map of size $56 \times 56 \times 64$ (height $\times$ width $\times$ channels). In a fully-connected network, it could be a 1024-dimensional feature vector |
-| $\mathbf{y}$ | **Output vector** after the residual block | The output has the **same dimensions** as $\mathbf{x}$ (due to the identity shortcut). For the example above, $\mathbf{y}$ would also be $56 \times 56 \times 64$ |
+| $\mathbf{y}$ | **Sum before the block’s final activation** | With an identity shortcut it has the same dimensions as $\mathbf{x}$, such as $56 \times 56 \times 64$ |
 | $\mathcal{F}(\mathbf{x}, \{W_i\})$ | **Residual mapping** to be learned by the stacked layers | For a two-layer residual block: $\mathcal{F} = W_2 \sigma(W_1 \mathbf{x})$. This represents the "residual" — the difference between the desired mapping and the identity |
 | $\{W_i\}$ | **Set of weight matrices** for the layers in the residual function | $W_1$ and $W_2$ are the weight matrices. For convolutional layers, these are convolution kernels. Example: $W_1$ could be a $3 \times 3 \times 64 \times 64$ convolution kernel (3×3 spatial, 64 input channels, 64 output channels) |
 | $\sigma$ | **ReLU activation** (Rectified Linear Unit) | $\sigma(x) = \max(0, x)$. Applied after the first convolution (and batch normalization) |

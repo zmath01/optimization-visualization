@@ -1,172 +1,111 @@
 from manim import *
 
+
 class CheapLearningScene(Scene):
     def construct(self):
-        # Configuration
-        C_HARD = RED
-        C_EASY = BLUE
-        C_WEIGHTS = GOLD
-        C_RG = GREEN
-        C_HIERARCHY = PURPLE
+        self.camera.background_color = "#101722"
+        self.image_space()
+        self.locality()
+        self.coarse_graining()
+        self.multiplication()
 
-        # ==========================================
-        # SCENE 1: The "Swindle" (Exponential vs Linear)
-        # ==========================================
-        title_1 = Text("1. The Combinatorial Swindle").to_edge(UP)
-        self.play(Write(title_1))
+    def heading(self, text):
+        title = Text(text, font_size=44).to_edge(UP, buff=0.4)
+        self.play(FadeIn(title))
 
-        # Exponential Explosion Space
-        all_funcs = MathTex(r"256^{1,000,000}", color=C_HARD).scale(2.5)
-        all_funcs_label = Text("All Possible Images (Pure Chaos)", color=C_HARD).next_to(all_funcs, DOWN)
-        self.play(FadeIn(all_funcs, shift=UP), Write(all_funcs_label))
+    def clear_panel(self):
+        self.play(FadeOut(Group(*self.mobjects)), run_time=0.45)
+
+    def image_space(self):
+        self.heading("Why can learning be cheap?")
+        count = MathTex(r"256^{1{,}000{,}000}", font_size=78, color=GOLD_A).move_to(UP * 1.24)
+        label = Text("Possible 1,000 × 1,000 grayscale images", font_size=30)
+        label.next_to(count, DOWN, buff=0.32)
+        contrast = VGroup(
+            Text("Natural images have structure", font_size=35, color=BLUE_A),
+            Text("Nearby pixels often carry related information.", font_size=26),
+        ).arrange(DOWN, buff=0.34).move_to(DOWN * 2.06)
+        self.play(Write(count), FadeIn(label))
         self.wait(1.5)
-
-        # Collapse to Physical Space
-        phys_dot = Dot(color=C_EASY).scale(2)
-        phys_label = Text("Images of the Physical World", color=C_EASY).next_to(phys_dot, DOWN)
-        self.play(
-            ReplacementTransform(all_funcs, phys_dot),
-            ReplacementTransform(all_funcs_label, phys_label)
-        )
-        self.wait(1)
-
-        # Equations
-        exp_eq = MathTex(r"N_{params} \approx v^n", color=C_HARD).scale(1.5)
-        lin_eq = MathTex(r"N_{params} \approx v \times n", color=C_EASY).scale(1.5)
-        
-        self.play(FadeOut(phys_dot), FadeOut(phys_label))
-        self.play(Write(exp_eq))
-        self.wait(1)
-        self.play(
-            Transform(exp_eq, lin_eq),
-            Circumscribe(lin_eq, color=C_WEIGHTS, run_time=2)
-        )
-        self.wait(2)
-        
-        self.play(*[FadeOut(mob) for mob in self.mobjects])
-
-        # ==========================================
-        # SCENE 2: Physics Properties (Locality)
-        # ==========================================
-        title_2 = Text("2. Locality & Symmetry").to_edge(UP)
-        self.play(Write(title_2))
-
-        # Grid of pixels
-        grid = VGroup(*[Dot(color=C_EASY, radius=0.1) for _ in range(16)]).arrange_in_grid(rows=4, cols=4, buff=0.8)
-        self.play(Create(grid))
-
-        # Locality: Local connections
-        local_edges = VGroup()
-        for i in range(4):
-            for j in range(4):
-                if i < 3: local_edges.add(Line(grid[i*4+j], grid[(i+1)*4+j], color=C_WEIGHTS, stroke_width=2))
-                if j < 3: local_edges.add(Line(grid[i*4+j], grid[i*4+j+1], color=C_WEIGHTS, stroke_width=2))
-        
-        self.play(Create(local_edges), run_time=2)
-        
-        # Hamiltonian Equation
-        hamiltonian = MathTex(r"H(x) = \sum h_i x_i + \sum h_{ij} x_i x_j + \dots").to_edge(DOWN)
-        self.play(Write(hamiltonian))
-        self.wait(1.5)
-
-        # Symmetry Rotation
-        sym_text = Text("Symmetry Invariant", color=C_EASY, font_size=24).next_to(grid, UP)
-        self.play(FadeIn(sym_text, shift=DOWN))
-        self.play(Rotate(grid, angle=PI/2), Rotate(local_edges, angle=PI/2), run_time=2)
-        self.wait(1.5)
-
-        self.play(*[FadeOut(mob) for mob in self.mobjects])
-
-        # ==========================================
-        # SCENE 3: Compositionality & Depth
-        # ==========================================
-        title_3 = Text("3. Hierarchical Compositionality").to_edge(UP)
-        self.play(Write(title_3))
-
-        # Helper to create layers
-        def get_layer(size, spacing):
-            return VGroup(*[Dot(color=C_HIERARCHY) for _ in range(size)]).arrange(RIGHT, buff=spacing)
-
-        def connect(l1, l2, color=GRAY):
-            return VGroup(*[Line(n1, n2, color=color, stroke_width=1, stroke_opacity=0.5) for n1 in l1 for n2 in l2])
-
-        # Deep Network (Hierarchical)
-        l1 = get_layer(1, 1).shift(UP * 1.5 + LEFT * 3)
-        l2 = get_layer(2, 1).shift(UP * 0 + LEFT * 3)
-        l3 = get_layer(4, 0.5).shift(DOWN * 1.5 + LEFT * 3)
-        
-        deep_edges = VGroup(connect(l1, l2, C_WEIGHTS), connect(l2, l3, C_WEIGHTS))
-        deep_net = VGroup(l1, l2, l3, deep_edges)
-        deep_label = Text("Deep (Sparse & Structured)", font_size=24).next_to(deep_net, DOWN)
-
-        # Shallow Network (Flat)
-        s1 = get_layer(1, 1).shift(UP * 1.5 + RIGHT * 3)
-        s2 = get_layer(8, 0.3).shift(DOWN * 1.5 + RIGHT * 3)
-        shallow_edges = connect(s1, s2, C_HARD)
-        shallow_net = VGroup(s1, s2, shallow_edges)
-        shallow_label = Text("Shallow (Dense & Tangled)", font_size=24).next_to(shallow_net, DOWN)
-
-        self.play(Create(deep_net), Write(deep_label))
-        self.wait(1)
-        self.play(Create(shallow_net), Write(shallow_label))
-        self.wait(2)
-
-        self.play(*[FadeOut(mob) for mob in self.mobjects])
-
-        # ==========================================
-        # SCENE 4: The Renormalization Group (RG)
-        # ==========================================
-        title_4 = Text("4. The Renormalization Group (RG)").to_edge(UP)
-        self.play(Write(title_4))
-
-        # High-res lattice
-        lattice_fine = VGroup(*[Dot(color=WHITE, radius=0.08) for _ in range(36)]).arrange_in_grid(rows=6, cols=6, buff=0.4).shift(LEFT * 3)
-        
-        # Coarse-grained lattice
-        lattice_coarse = VGroup(*[Dot(color=C_RG, radius=0.15) for _ in range(9)]).arrange_in_grid(rows=3, cols=3, buff=0.8).shift(RIGHT * 3)
-
-        flow_arrow = Arrow(start=LEFT, end=RIGHT, color=C_RG).scale(1.5)
-        flow_math = MathTex(r"J \to J'", color=C_RG).next_to(flow_arrow, UP)
-
-        self.play(Create(lattice_fine))
-        self.wait(1)
-        
-        # Animate Decimation / Pooling
-        self.play(GrowArrow(flow_arrow), Write(flow_math))
-        self.play(TransformFromCopy(lattice_fine, lattice_coarse))
-        
-        rg_label = Text("Physics: Coarse-graining", font_size=24).next_to(lattice_coarse, DOWN)
-        cnn_label = Text("Deep Learning: CNN Pooling", font_size=24, color=C_WEIGHTS).next_to(lattice_coarse, DOWN)
-        
-        self.play(Write(rg_label))
-        self.wait(1.5)
-        self.play(Transform(rg_label, cnn_label))
-        self.wait(2)
-
-        self.play(*[FadeOut(mob) for mob in self.mobjects])
-
-        # ==========================================
-        # SCENE 5: No-Flattening Theorem
-        # ==========================================
-        title_5 = Text("5. The No-Flattening Theorem").to_edge(UP)
-        self.play(Write(title_5))
-
-        task_text = MathTex(r"\text{Task: } x_1 \times x_2 \times \dots \times x_n").shift(UP * 2)
-        self.play(Write(task_text))
-
-        # Deep comparison
-        deep_res = MathTex(r"\text{Deep Network: } \approx 2n \text{ Neurons}", color=C_EASY).shift(UP * 0.5)
-        self.play(FadeIn(deep_res, shift=UP))
-        self.wait(1)
-
-        # Shallow explosion
-        shallow_res = MathTex(r"\text{Shallow Network: } \ge 2^n \text{ Neurons}", color=C_HARD).shift(DOWN * 0.5)
-        self.play(FadeIn(shallow_res, shift=UP))
-        
-        # Exploding animation effect
-        explosion_box = SurroundingRectangle(shallow_res, color=C_HARD, buff=0.2)
-        self.play(Create(explosion_box), shallow_res.animate.scale(1.2))
-        
-        conclusion = Text("Multiplication fundamentally requires depth.", font_size=32, color=C_WEIGHTS).to_edge(DOWN)
-        self.play(Write(conclusion))
+        self.play(FadeIn(contrast))
         self.wait(3)
+        self.clear_panel()
+
+    def locality(self):
+        self.heading("Locality and shared interactions")
+        grid = VGroup(*[Dot(radius=0.09, color=BLUE_A) for _ in range(16)])
+        grid.arrange_in_grid(rows=4, cols=4, buff=0.57).move_to(LEFT * 3.95)
+        edges = VGroup(*[
+            Line(grid[4*i+j], grid[4*(i+di)+j+dj], buff=0.09, color=GOLD_A, stroke_width=3)
+            for i in range(4) for j in range(4) for di, dj in [(1, 0), (0, 1)]
+            if i + di < 4 and j + dj < 4
+        ])
+        math = VGroup(
+            MathTex(r"H(\mathbf{x})=J\!\sum_{\langle i,j\rangle}x_i x_j", font_size=49),
+            Text("Only neighboring sites interact.", font_size=28),
+            Text("Each bond has the same coupling J.", font_size=28),
+        ).arrange(DOWN, buff=0.42, aligned_edge=LEFT).move_to(RIGHT * 2.18)
+        note = Text("A quarter-turn preserves this square lattice and its couplings.",
+                    font_size=27, color=GREY_A).to_edge(DOWN, buff=0.59)
+        lattice = VGroup(edges, grid)
+        self.play(FadeIn(grid), Create(edges))
+        self.play(FadeIn(math))
+        self.play(Rotate(lattice, angle=PI / 2), FadeIn(note), run_time=1.6)
+        self.wait(3)
+        self.clear_panel()
+
+    def coarse_graining(self):
+        self.heading("A hierarchy of coarser descriptions")
+        fine = VGroup()
+        coarse = VGroup()
+        for i in range(3):
+            for j in range(3):
+                color = [TEAL_A, BLUE_A, GREEN_A][(i + j) % 3]
+                patch = VGroup(*[Dot(radius=0.075, color=color) for _ in range(4)])
+                fine.add(patch.arrange_in_grid(rows=2, cols=2, buff=0.13))
+                coarse.add(Dot(radius=0.16, color=color))
+        fine.arrange_in_grid(rows=3, cols=3, buff=0.35).move_to(LEFT * 3.8)
+        coarse.arrange_in_grid(rows=3, cols=3, buff=0.48).move_to(RIGHT * 3.8)
+        arrow = Arrow(LEFT * 1.38, RIGHT * 1.38, buff=0, color=GOLD_A)
+        operation = Text("Aggregate each block", font_size=25, color=GOLD_A).next_to(arrow, UP, buff=0.25)
+        fine_label = Text("Fine scale", font_size=27).move_to([-3.8, -1.85, 0])
+        coarse_label = Text("Coarse scale", font_size=27).move_to([3.8, -1.85, 0])
+        note = Text("Coarse-graining in physics and pooling in neural networks share this idea.",
+                    font_size=26, color=GREY_A).to_edge(DOWN, buff=0.55)
+        self.play(FadeIn(fine), FadeIn(fine_label))
+        self.play(GrowArrow(arrow), FadeIn(operation))
+        self.play(*[TransformFromCopy(patch, dot) for patch, dot in zip(fine, coarse)],
+                  FadeIn(coarse_label), run_time=1.5)
+        self.play(FadeIn(note))
+        self.wait(3)
+        self.clear_panel()
+
+    def multiplication(self):
+        self.heading("Depth can save neurons")
+        gate = MathTex(r"uv=\frac{(u+v)^2-(u-v)^2}{4}", font_size=57, color=TEAL_A)
+        gate.move_to(UP * 1.38)
+        gate_note = Text("A two-input multiplication gate with square units.", font_size=27)
+        gate_note.next_to(gate, DOWN, buff=0.28)
+        self.play(Write(gate), FadeIn(gate_note))
+        self.wait(2)
+
+        # Two squares suffice for this identity. The separate width bound
+        # assumes the generic activation specified in the paper's Appendix A.
+        self.play(FadeOut(gate), FadeOut(gate_note))
+        product = MathTex(r"x_1x_2\cdots x_n", font_size=58).move_to(UP * 1.87)
+        deep = VGroup(
+            Text("Tree of pairwise multiplications", font_size=28, color=TEAL_A),
+            MathTex(r"O(n)\text{ neurons}", font_size=53, color=TEAL_A),
+        ).arrange(DOWN, buff=0.3).move_to([-3.25, -0.14, 0])
+        shallow = VGroup(
+            Text("One hidden layer", font_size=28, color=GOLD_A),
+            MathTex(r"2^n\text{ neurons}", font_size=53, color=GOLD_A),
+        ).arrange(DOWN, buff=0.3).move_to([3.25, -0.14, 0])
+        conditions = VGroup(
+            Text("The shallow width bound uses the paper’s smooth activation assumptions.", font_size=26),
+            MathTex(r"\sigma^{(k)}(0)\ne 0\quad(0\le k\le n)", color=GREY_A, font_size=32),
+        ).arrange(DOWN, buff=0.22).to_edge(DOWN, buff=0.44)
+        self.play(FadeIn(product))
+        self.play(FadeIn(deep), FadeIn(shallow))
+        self.play(FadeIn(conditions))
+        self.wait(5)

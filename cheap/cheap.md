@@ -86,7 +86,7 @@ $$
 
 ### 1.5 Multiplication with 4 Neurons (Key Theorem)
 
-**Theorem**: Any smooth non-linear activation function $\sigma$ can approximate a multiplication gate arbitrarily well using **only 4 neurons** in a single hidden layer.
+**Theorem**: A smooth activation function $\sigma$ with $\sigma''(0)\ne 0$ can approximate multiplication arbitrarily well on bounded input ranges using **4 neurons** in a single hidden layer.
 
 Let $\sigma(u) = \sigma_0 + \sigma_1 u + \sigma_2 \frac{u^2}{2} + \mathcal{O}(u^3)$.
 
@@ -122,7 +122,7 @@ where $\mathbf{p}_i$ is the probability distribution at hierarchy level $i$, and
 
 The paper proves various “no-flattening theorems” showing that **efficient deep networks cannot be accurately approximated by shallow ones without efficiency loss**.
 
-**Key example**: $n$ variables **cannot be multiplied** using fewer than $2^n$ neurons in a single hidden layer.
+**Key example**: In Appendix A's setting, the activation is smooth with nonzero Taylor coefficients through degree $n$. The single-hidden-layer product construction uses $2^n$ neurons, and the appendix derives a matching lower bound under those assumptions. A tree of pairwise multiplications instead uses a number of neurons linear in $n$.
 
 ---
 
@@ -444,41 +444,19 @@ def visualize_hierarchical_structure():
     # ---- Right: Depth efficiency ----
     ax2 = axes[1]
 
-    # Simulate number of neurons needed for shallow vs deep networks
-    n_layers = np.arange(1, 21)
-    # Shallow: exponential growth in neurons
-    shallow_neurons = 2 ** (n_layers / 2)
-    # Deep: linear growth in neurons
-    deep_neurons = 2 * n_layers
+    # Counts for the constructions using a generic smooth activation
+    n_inputs = np.arange(2, 21)
+    shallow_neurons = 2 ** n_inputs
+    deep_neurons = 4 * (n_inputs - 1)  # Four units in each of n - 1 product gates
 
-    ax2.semilogy(n_layers, shallow_neurons, 'r-', linewidth=3, label='Shallow Network (1 hidden layer)')
-    ax2.semilogy(n_layers, deep_neurons, 'g-', linewidth=3, label='Deep Network (hierarchical)')
+    ax2.semilogy(n_inputs, shallow_neurons, 'r-', linewidth=3, label=r'Single hidden layer ($2^n$)')
+    ax2.semilogy(n_inputs, deep_neurons, 'g-', linewidth=3, label=r'Product tree ($4(n-1)$)')
 
-    # Mark the "no-flattening" result
-    ax2.axvline(x=10, color='purple', linestyle='--', alpha=0.7,
-                label=r'$n$ variables need $\geq 2^n$ neurons in 1 layer')
-
-    ax2.set_xlabel('Problem Complexity / Hierarchy Depth', fontsize=13)
-    ax2.set_ylabel('Number of Neurons Required', fontsize=13)
+    ax2.set_xlabel('Number of inputs', fontsize=13)
+    ax2.set_ylabel('Hidden neurons', fontsize=13)
     ax2.set_title('Depth Efficiency: Shallow vs. Deep Networks', fontsize=14, fontweight='bold')
     ax2.legend(loc='upper left', fontsize=11)
     ax2.grid(alpha=0.3)
-
-    # Annotations
-    ax2.annotate('Exponential growth\n(impractical for large n)',
-                 xy=(15, 2**(15/2)), xytext=(12, 2**7),
-                 arrowprops=dict(arrowstyle='->', color='red', lw=2),
-                 fontsize=10, color='red')
-
-    ax2.annotate('Linear growth\n(efficient!)',
-                 xy=(15, 30), xytext=(12, 15),
-                 arrowprops=dict(arrowstyle='->', color='green', lw=2),
-                 fontsize=10, color='green')
-
-    # No-flattening theorem
-    ax2.text(12, 500, r'No-Flattening Theorem:', fontsize=11, fontweight='bold')
-    ax2.text(12, 350, r'$n$ variables need $\geq 2^n$', fontsize=10)
-    ax2.text(12, 250, r'neurons in a single layer', fontsize=10)
 
     plt.tight_layout()
     plt.show()
@@ -625,8 +603,8 @@ if __name__ == "__main__":
     print("   enable 'cheap learning' with far fewer parameters.")
     print("3. Multiplication can be approximated arbitrarily well with only 4 neurons.")
     print("4. Deep networks are more efficient than shallow ones for hierarchical data.")
-    print("5. No-flattening theorems: n variables cannot be multiplied using fewer")
-    print("   than 2^n neurons in a single hidden layer.")
+    print("5. Under the paper's smooth activation assumptions, the single-layer")
+    print("   product construction uses 2^n hidden neurons.")
     print("=" * 70)
 ```
 
@@ -634,7 +612,7 @@ if __name__ == "__main__":
 
 | Visualization | Content | Key Insight |
 |------|---------|---------|
-| **Multiplication Gate** | Architecture using 4 neurons + accuracy vs. λ | Any smooth nonlinearity can approximate multiplication arbitrarily well |
+| **Multiplication Gate** | Architecture using 4 neurons + accuracy vs. λ | A smooth activation with $\sigma''(0)\ne 0$ can approximate multiplication arbitrarily well on bounded inputs |
 | **Hamiltonian Decomposition** | Parameter count: generic vs. structured | Symmetry + locality + low order → O(1) parameters |
 | **Hierarchical Structure** | Markov chain + depth efficiency | Deep networks are exponentially more efficient for hierarchical data |
 | **Cheap Learning Factors** | Reduction from generic to symmetric | Each constraint reduces parameters dramatically |
@@ -653,10 +631,10 @@ if __name__ == "__main__":
 
 1. **Cheap Learning**: The functions of practical interest can be approximated with **exponentially fewer parameters** than generic ones due to symmetry, locality, and low polynomial order
 
-2. **Multiplication with 4 Neurons**: Any smooth nonlinear activation can approximate multiplication arbitrarily well using only 4 neurons in a single hidden layer
+2. **Multiplication with 4 Neurons**: A smooth activation with nonzero second derivative at the expansion point can approximate multiplication using four neurons in a single hidden layer.
 
 3. **Hamiltonian Perspective**: Classification problems reduce to computing Hamiltonians $H_y(\mathbf{x}) = -\ln p(\mathbf{x}|y)$ followed by a softmax layer
 
-4. **No-Flattening Theorems**: Efficient deep networks cannot be accurately approximated by shallow ones without efficiency loss; e.g., $n$ variables cannot be multiplied using fewer than $2^n$ neurons in a single hidden layer
+4. **No-Flattening Theorems**: The product example in Appendix A exhibits an exponential width cost for a single hidden layer under the stated activation assumptions.
 
 5. **Hierarchical Efficiency**: When data has hierarchical/compositional structure (common in physics and machine learning), deep networks are exponentially more efficient than shallow ones

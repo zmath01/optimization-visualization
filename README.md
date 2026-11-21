@@ -18,10 +18,24 @@ Interactive visualizations and paper analyses of optimization algorithms and dee
 - [Adam Slow Motion Comparison](./adam/adam_slow.html) - Step-by-step Adam optimization visualization
 - [Adam Integration](./adam/adam_integrate.html) - Interactive Adam parameter integration
 
+## Render the Manim videos
+
+With FFmpeg, LaTeX and dvisvgm installed, install Manim Community 0.19.0 and run the scenes at 1080p and 30 fps:
+
+```sh
+python -m pip install manim==0.19.0
+python -m manim -qh --fps 30 adam/adam_manim.py AdamOptimizerScene
+python -m manim -qh --fps 30 resnet/resnet_manim.py ResNetVisualization
+python -m manim -qh --fps 30 cheap/cheap_manim.py CheapLearningScene
+python -m manim -qh --fps 30 attention/attention_tofix_01.py TransformerAttentionScene
+```
+
+Encode each rendered MP4 at its linked path with `ffmpeg -i rendered.mp4 -an -c:v libx264 -preset slow -tune animation -crf 19 -pix_fmt yuv420p -movflags +faststart published.mp4`.
+
 ## Features
 
 - Full paper analyses with mathematical derivations (TeX/MathJax)
-- Python code with highlighting and line numbers
+- Collapsible Python code with syntax highlighting in each article
 - Manim animation videos for key concepts
 - Interactive HTML demos
 
